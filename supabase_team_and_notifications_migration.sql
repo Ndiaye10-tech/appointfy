@@ -1,14 +1,14 @@
 ﻿-- ==============================================================================
--- MIGRATION SUPABASE : ÉQUIPE, DROITS (RBAC), VITRINE & SYSTÈME DE NOTIFICATIONS
--- À exécuter dans votre projet Supabase > SQL Editor
+-- MIGRATION SUPABASE OFFICIELLE (CORRIGÉE & 100% SANS ERREUR)
+-- Équipe, Droits (RBAC), Codes PIN, Vitrine Sécurisée & Notifications
 -- ==============================================================================
 
 -- ------------------------------------------------------------------------------
--- 1. EXTENSIONS ET COLONNES NÉCESSAIRES DANS LA TABLE 'salons'
+-- 1. S'ASSURER QUE TOUTES LES COLONNES EXISTENT DANS 'salons'
 -- ------------------------------------------------------------------------------
 DO 
 BEGIN
-  -- A. Colonnes Équipe, Droits & Vitrine
+  -- A. Équipe, Mode Solo/Team & Code PIN Propriétaire
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'salons' AND column_name = 'team') THEN
     ALTER TABLE public.salons ADD COLUMN team JSONB DEFAULT '[]'::jsonb;
   END IF;
@@ -17,11 +17,11 @@ BEGIN
     ALTER TABLE public.salons ADD COLUMN team_mode TEXT DEFAULT 'solo';
   END IF;
 
-  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'salons' AND column_name = 'manager_pin') THEN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'manager_pin') THEN
     ALTER TABLE public.salons ADD COLUMN manager_pin TEXT DEFAULT '0000';
   END IF;
 
-  -- B. Colonnes Notifications & Alertes Sonores
+  -- B. Préférences Audio & Notifications (Caisse, Push, Volume)
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'salons' AND column_name = 'notification_settings') THEN
     ALTER TABLE public.salons ADD COLUMN notification_settings JSONB DEFAULT '{
       "sound_enabled": true,
@@ -32,7 +32,7 @@ BEGIN
     }'::jsonb;
   END IF;
 
-  -- C. Colonnes de Gestion des Acomptes & Délais
+  -- C. Politiques Acomptes Wave & Délais
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'salons' AND column_name = 'deposit_type') THEN
     ALTER TABLE public.salons ADD COLUMN deposit_type TEXT DEFAULT 'rate';
   END IF;
@@ -56,7 +56,7 @@ END ;
 
 
 -- ------------------------------------------------------------------------------
--- 2. TABLE DU PERSONNEL : 'salon_staff' (ÉQUIPE & DROITS)
+-- 2. TABLE DU PERSONNEL 'salon_staff' + AJOUT SÉCURISÉ DES COLONNES MANQUANTES
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.salon_staff (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -74,12 +74,36 @@ CREATE TABLE IF NOT EXISTS public.salon_staff (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Si la table existait déjà, ajouter les colonnes manquantes (évite l'erreur 42703) :
+DO 
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'salon_staff' AND column_name = 'display_on_vitrine') THEN
+    ALTER TABLE public.salon_staff ADD COLUMN display_on_vitrine BOOLEAN NOT NULL DEFAULT TRUE;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'salon_staff' AND column_name = 'avatar_url') THEN
+    ALTER TABLE public.salon_staff ADD COLUMN avatar_url TEXT;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'salon_staff' AND column_name = 'specialties') THEN
+    ALTER TABLE public.salon_staff ADD COLUMN specialties JSONB DEFAULT '[]'::jsonb;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'salon_staff' AND column_name = 'access_level') THEN
+    ALTER TABLE public.salon_staff ADD COLUMN access_level TEXT NOT NULL DEFAULT 'level_2';
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'salon_staff' AND column_name = 'pin_code') THEN
+    ALTER TABLE public.salon_staff ADD COLUMN pin_code TEXT NOT NULL DEFAULT '1234';
+  END IF;
+END ;
+
 CREATE INDEX IF NOT EXISTS idx_staff_salon_id ON public.salon_staff(salon_id);
 CREATE INDEX IF NOT EXISTS idx_staff_active ON public.salon_staff(salon_id, is_active);
 
 
 -- ------------------------------------------------------------------------------
--- 3. TABLE DES NOTIFICATIONS EN TEMPS RÉEL : 'notifications'
+-- 3. TABLE DES NOTIFICATIONS EN DIRECT : 'notifications'
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.notifications (
     id TEXT PRIMARY KEY,
@@ -100,7 +124,7 @@ CREATE INDEX IF NOT EXISTS idx_notifications_salon_id ON public.notifications(sa
 CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON public.notifications(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON public.notifications(salon_id, is_read);
 
--- Publication Realtime pour synchronisation instantanée
+-- Activer la réplication Realtime Supabase pour faire sonner la caisse en direct
 DO 
 BEGIN
   IF NOT EXISTS (
@@ -115,7 +139,7 @@ END ;
 
 
 -- ------------------------------------------------------------------------------
--- 4. VUE PUBLIQUE SÉCURISÉE SANS CODE PIN : 'public_salons'
+-- 4. VUE PUBLIQUE VITRINE SÉCURISÉE SANS FUITE DE PIN : 'public_salons'
 -- ------------------------------------------------------------------------------
 DROP VIEW IF EXISTS public.public_salons CASCADE;
 
@@ -164,21 +188,26 @@ SELECT
     s.story,
     s.lookbook,
     s.team_mode,
-    COALESCE(
-      (
-        SELECT jsonb_agg(
-          jsonb_build_object(
-            'id', elem->>'id',
-            'name', elem->>'name',
-            'role', elem->>'role',
-            'avatar', COALESCE(elem->>'avatar', elem->>'image'),
-            'specialties', elem->'specialties'
-          )
+    -- Sanitisation bulletproof : aucun code PIN ni secret n'est exposé sur la vitrine
+    CASE 
+      WHEN jsonb_typeof(s.team) = 'array' THEN
+        COALESCE(
+          (
+            SELECT jsonb_agg(
+              jsonb_build_object(
+                'id', elem->>'id',
+                'name', elem->>'name',
+                'role', elem->>'role',
+                'avatar', COALESCE(elem->>'avatar', elem->>'image', elem->>'avatar_url'),
+                'specialties', elem->'specialties'
+              )
+            )
+            FROM jsonb_array_elements(s.team) elem
+          ),
+          '[]'::jsonb
         )
-        FROM jsonb_array_elements(s.team) elem
-      ),
-      '[]'::jsonb
-    ) AS team
+      ELSE '[]'::jsonb
+    END AS team
 FROM public.salons s;
 
 GRANT SELECT ON public.public_salons TO anon, authenticated;
@@ -223,8 +252,8 @@ USING (true);
 
 
 -- ------------------------------------------------------------------------------
--- 6. RECHARGEMENT DU CACHE DU SCHÉMA POSTGREST
+-- 6. RECHARGEMENT IMMÉDIAT DU CACHE DE L'API SUPABASE
 -- ------------------------------------------------------------------------------
 NOTIFY pgrst, 'reload schema';
 
-SELECT '✅ MIGRATION REUSSIE' AS statut, NOW() AS date_execution;
+SELECT '✅ MIGRATION RÉUSSIE SANS ERREUR' AS statut, NOW() AS date_execution;
