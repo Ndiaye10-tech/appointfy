@@ -26,38 +26,62 @@ serve(async (req) => {
       customerPhone,
       customerEmail,
       description,
+      paymentMethod,
+      country = 'SN',
       metadata = {},
       successUrl,
       errorUrl
     } = body;
 
-    const safeAmount = Math.max(100, Math.round(Number(amount) || 100));
+    const safeAmount = Math.max(200, Math.round(Number(amount) || 200));
+    const safeCountry = String(country || 'SN').toUpperCase();
     const rawPhone = String(customerPhone || '').replace(/[^\d+]/g, '');
-    const formattedPhone = rawPhone.startsWith('+')
-      ? rawPhone
-      : rawPhone.startsWith('221')
-      ? '+' + rawPhone
-      : '+221' + rawPhone;
 
-    const payload = {
+    const prefixes: Record<string, string> = {
+      SN: '+221',
+      CI: '+225',
+      ML: '+223',
+      BJ: '+229',
+      TG: '+228',
+      BF: '+226'
+    };
+    const prefix = prefixes[safeCountry] || '+221';
+    const numCode = prefix.replace('+', '');
+
+    let formattedPhone = rawPhone;
+    if (rawPhone && !rawPhone.startsWith('+')) {
+      if (rawPhone.startsWith(numCode)) {
+        formattedPhone = '+' + rawPhone;
+      } else {
+        formattedPhone = prefix + rawPhone;
+      }
+    }
+
+    const payload: Record<string, unknown> = {
       amount: safeAmount,
       currency: 'XOF',
       description: (description || 'Acompte réservation salon').slice(0, 500),
-      payment_method: 'wave',
       customer: {
         name: customerName || 'Client Appointfy',
         phone: formattedPhone,
-        country: 'SN',
+        country: safeCountry,
         ...(customerEmail && customerEmail.includes('@') ? { email: customerEmail } : {})
       },
       metadata: {
         ...metadata,
         platform: 'Appointfy',
-        client_phone: formattedPhone
+        client_phone: formattedPhone,
+        country: safeCountry,
+        payment_method_selected: paymentMethod || 'Multi-Paiement'
       },
       ...(successUrl ? { success_url: successUrl } : {}),
       ...(errorUrl ? { error_url: errorUrl } : {})
     };
+
+    if (paymentMethod && String(paymentMethod).toLowerCase() === 'wave') {
+      payload.payment_method = 'wave';
+    }
+
 
     const res = await fetch('https://api.geniuspay.ci/v1/payments', {
       method: 'POST',

@@ -1,7 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useBooking, formatFCFA } from '../../context/BookingContext';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
-import { createGeniusPayment, checkGeniusPaymentStatus, isGeniusPayConfigured, PLATFORM_ADMIN_WAVE_PHONE, PLATFORM_ADMIN_WAVE_PHONE_INTL } from '../../lib/geniuspay';
+import {
+  createGeniusPayment,
+  checkGeniusPaymentStatus,
+  isGeniusPayConfigured,
+  PLATFORM_ADMIN_WAVE_PHONE,
+  PLATFORM_ADMIN_WAVE_PHONE_INTL,
+  COUNTRY_PHONE_CONFIG
+} from '../../lib/geniuspay';
+import { CountryFlag } from '../common/CountryFlag';
 import {
   ShieldCheck,
   CheckCircle2,
@@ -22,19 +30,69 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
+// Catalogue des opérateurs supportés par pays pour le règlement de l'abonnement
+const OPERATORS_BY_COUNTRY = {
+  SN: [
+    { id: 'Wave', name: 'Wave Sénégal', desc: 'Débit direct instantané', color: '#1DC3FF', textColor: '#000' },
+    { id: 'Orange Money', name: 'Orange Money', desc: 'Push USSD / Code marchand', color: '#FF7900', textColor: '#FFF' },
+    { id: 'Carte Bancaire', name: 'Carte Bancaire', desc: 'Visa / Mastercard', color: '#2563EB', textColor: '#FFF' }
+  ],
+  CI: [
+    { id: 'Wave', name: 'Wave Côte d\'Ivoire', desc: 'Débit direct instantané', color: '#1DC3FF', textColor: '#000' },
+    { id: 'Orange Money', name: 'Orange Money CI', desc: 'Push OTP ou *144#', color: '#FF7900', textColor: '#FFF' },
+    { id: 'MTN MoMo', name: 'MTN MoMo', desc: 'Push Mobile Money MTN', color: '#FFCC00', textColor: '#000' },
+    { id: 'Moov Money', name: 'Moov Money CI', desc: 'Validation directe Moov', color: '#0066B3', textColor: '#FFF' },
+    { id: 'Carte Bancaire', name: 'Carte Bancaire', desc: 'Visa / Mastercard', color: '#2563EB', textColor: '#FFF' }
+  ],
+  ML: [
+    { id: 'Orange Money', name: 'Orange Money Mali', desc: 'Validation *144#', color: '#FF7900', textColor: '#FFF' },
+    { id: 'Moov Money', name: 'Moov Money', desc: 'Validation push Moov', color: '#0066B3', textColor: '#FFF' },
+    { id: 'Wave', name: 'Wave Mali', desc: 'Paiement direct Wave', color: '#1DC3FF', textColor: '#000' },
+    { id: 'Carte Bancaire', name: 'Carte Bancaire', desc: 'Visa / Mastercard', color: '#2563EB', textColor: '#FFF' }
+  ],
+  BJ: [
+    { id: 'MTN MoMo', name: 'MTN MoMo Bénin', desc: 'Validation instantanée MTN', color: '#FFCC00', textColor: '#000' },
+    { id: 'Moov Money', name: 'Moov Money Bénin', desc: 'Validation push Flooz', color: '#0066B3', textColor: '#FFF' },
+    { id: 'Wave', name: 'Wave Bénin', desc: 'Paiement direct Wave', color: '#1DC3FF', textColor: '#000' },
+    { id: 'Carte Bancaire', name: 'Carte Bancaire', desc: 'Visa / Mastercard', color: '#2563EB', textColor: '#FFF' }
+  ],
+  TG: [
+    { id: 'Moov Money', name: 'Moov Money (Flooz)', desc: 'Validation Moov Togo', color: '#0066B3', textColor: '#FFF' },
+    { id: 'T-Money', name: 'T-Money Togo', desc: 'Paiement mobile Togo', color: '#008751', textColor: '#FFF' },
+    { id: 'Carte Bancaire', name: 'Carte Bancaire', desc: 'Visa / Mastercard', color: '#2563EB', textColor: '#FFF' }
+  ],
+  BF: [
+    { id: 'Orange Money', name: 'Orange Money BF', desc: 'Validation par code OTP', color: '#FF7900', textColor: '#FFF' },
+    { id: 'Moov Money', name: 'Moov Money BF', desc: 'Validation directe Moov', color: '#0066B3', textColor: '#FFF' },
+    { id: 'Carte Bancaire', name: 'Carte Bancaire', desc: 'Visa / Mastercard', color: '#2563EB', textColor: '#FFF' }
+  ]
+};
+
 export const SubscriptionManager = () => {
   const { salon, updateSalon } = useBooking();
   const [payments, setPayments] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
+  const salonCountry = (salon?.country || 'SN').toUpperCase();
+  const availableMethods = OPERATORS_BY_COUNTRY[salonCountry] || OPERATORS_BY_COUNTRY.SN;
+  const phoneConfig = COUNTRY_PHONE_CONFIG[salonCountry] || COUNTRY_PHONE_CONFIG.SN;
+
   // Payment Flow State
   const [isPaying, setIsPaying] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState('Wave'); // 'Wave' | 'Orange Money' | 'all'
+  const [paymentMethod, setPaymentMethod] = useState('Wave');
   const [phone, setPhone] = useState(salon?.phone || '');
   const [payStep, setPayStep] = useState('idle'); // 'idle' | 'processing' | 'awaiting' | 'success' | 'error'
   const [errorMessage, setErrorMessage] = useState(null);
   const [transactionData, setTransactionData] = useState(null);
   const pollingRef = useRef(null);
+
+  // Synchroniser méthode selon le pays
+  useEffect(() => {
+    if (availableMethods.length > 0 && !availableMethods.some(m => m.id === paymentMethod)) {
+      setPaymentMethod(availableMethods[0].id);
+    }
+  }, [salonCountry]);
+
 
   // Subscription calculation - Tarif officiel immuable : 9 900 FCFA / mois
   const subscriptionPrice = 9900;
@@ -191,7 +249,8 @@ export const SubscriptionManager = () => {
         amount: subscriptionPrice,
         customerName: salon.name || 'Gérante Salon',
         customerPhone: phone || salon.phone || '770000000',
-        paymentMethod: 'wave',
+        paymentMethod: paymentMethod,
+        country: salonCountry,
         description: `Abonnement 30 jours Appointfy - ${salon.name} (Bénéficiaire Admin: ${PLATFORM_ADMIN_WAVE_PHONE})`,
         metadata: {
           salon_id: salon.id,
@@ -201,9 +260,13 @@ export const SubscriptionManager = () => {
           recipient_phone: PLATFORM_ADMIN_WAVE_PHONE,
           recipient_wave: PLATFORM_ADMIN_WAVE_PHONE,
           beneficiary_phone: PLATFORM_ADMIN_WAVE_PHONE_INTL,
+          beneficiary_name: 'Mahmoud Ndiaye (Admin Appointfy)',
+          admin_phone: PLATFORM_ADMIN_WAVE_PHONE,
+          payment_method: paymentMethod,
           period_days: 30
         }
       });
+
 
       if (res?.success && res.data) {
         setTransactionData(res.data);
@@ -412,45 +475,109 @@ export const SubscriptionManager = () => {
               <div className="space-y-4">
                 {/* Method selector */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Moyen de paiement sécurisé :
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
+                    <span>Moyen de paiement sécurisé :</span>
+                    <span className="text-[10px] font-bold text-slate-500 flex items-center gap-1">
+                      <CountryFlag countryCode={phoneConfig.flag} className="w-3.5 h-2.5 rounded-xs object-cover" />
+                      <span>{phoneConfig.name}</span>
+                    </span>
                   </label>
-                  <div className="w-full">
-                    <div className="p-3 rounded-xl border-2 border-[#1DC3FF] bg-[#1DC3FF]/5 flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded-lg bg-[#1DC3FF] flex items-center justify-center text-white text-xs font-black shrink-0 shadow-xs">
-                        W
-                      </div>
-                      <div className="text-left">
-                        <span className="text-xs font-black text-slate-900 block">Wave Sénégal 🇸🇳</span>
-                        <span className="text-[10px] text-sky-700 font-medium">Paiement direct sans frais</span>
-                      </div>
-                    </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {availableMethods.map((method) => {
+                      const isSelected = paymentMethod === method.id;
+                      return (
+                        <button
+                          key={method.id}
+                          type="button"
+                          onClick={() => setPaymentMethod(method.id)}
+                          className={`p-2.5 rounded-xl border-2 text-left transition-all cursor-pointer flex items-center justify-between ${
+                            isSelected
+                              ? 'border-pink-600 bg-pink-50/70 ring-2 ring-pink-500/20 shadow-xs'
+                              : 'border-slate-200 hover:border-slate-300 bg-white'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div
+                              className="w-7 h-7 rounded-lg flex items-center justify-center font-black text-xs shrink-0 shadow-xs"
+                              style={{
+                                backgroundColor: method.color,
+                                color: method.textColor || '#FFF'
+                              }}
+                            >
+                              {method.id === 'Wave' ? (
+                                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14.5h-2v-2h2v2zm0-4h-2V7h2v5.5z"/>
+                                </svg>
+                              ) : method.id === 'Carte Bancaire' ? (
+                                <CreditCard className="w-4 h-4" />
+                              ) : (
+                                <span>{method.id.slice(0, 2).toUpperCase()}</span>
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <span className="text-xs font-black text-slate-900 block truncate">
+                                {method.name}
+                              </span>
+                              <span className="text-[10px] text-slate-500 block truncate">
+                                {method.desc}
+                              </span>
+                            </div>
+                          </div>
+                          <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${
+                            isSelected ? 'bg-pink-600 text-white' : 'border border-slate-300'
+                          }`}>
+                            {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
-                {/* Phone */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Numéro de téléphone mobile
-                  </label>
-                  <div className="relative">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-xs font-bold text-slate-600 pr-2 border-r border-slate-200">
-                      <span>🇸🇳</span>
-                      <span>+221</span>
+                {/* Phone input */}
+                {paymentMethod !== 'Carte Bancaire' ? (
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      Numéro {paymentMethod} pour le prélèvement :
+                    </label>
+                    <div className="relative">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-xs font-bold text-slate-600 pr-2 border-r border-slate-200">
+                        <CountryFlag countryCode={phoneConfig.flag} className="w-4 h-3 rounded-xs object-cover" />
+                        <span>{phoneConfig.code}</span>
+                      </div>
+                      <input
+                        type="tel"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        placeholder={phoneConfig.placeholder || '77 123 45 67'}
+                        className="w-full pl-24 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm font-mono font-bold focus:outline-pink-600"
+                        required
+                      />
                     </div>
-                    <input
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="77 123 45 67"
-                      className="w-full pl-24 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm font-mono font-bold focus:outline-pink-600"
-                    />
                   </div>
-                </div>
+                ) : (
+                  <div className="p-3 bg-blue-50/80 border border-blue-200 rounded-xl text-xs text-blue-900 flex items-center gap-2">
+                    <CreditCard className="w-4 h-4 text-blue-600 shrink-0" />
+                    <span>Règlement direct par carte Visa / Mastercard via passerelle certifiée.</span>
+                  </div>
+                )}
 
-                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-600 flex items-center justify-between">
-                  <span className="text-slate-500 font-medium">Bénéficiaire plateforme :</span>
-                  <span className="font-bold text-slate-800 font-mono">Wave 78 472 29 51</span>
+                {/* Admin Platform Beneficiary Transparency Box */}
+                <div className="p-3 rounded-2xl bg-amber-50/90 border border-amber-200/80 text-xs text-amber-950 flex items-center justify-between shadow-2xs">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-base shrink-0">👑</span>
+                    <div className="min-w-0">
+                      <span className="font-extrabold block text-amber-950 truncate">
+                        Bénéficiaire officiel de l'abonnement SaaS :
+                      </span>
+                      <span className="text-[11px] text-amber-800 font-medium truncate block">
+                        Mahmoud Ndiaye (Fondateur Appointfy)
+                      </span>
+                    </div>
+                  </div>
+                  <span className="font-mono font-bold text-amber-900 bg-white px-2.5 py-1 rounded-lg border border-amber-300 text-xs shrink-0 ml-2">
+                    78 472 29 51
+                  </span>
                 </div>
 
                 <button
@@ -458,11 +585,12 @@ export const SubscriptionManager = () => {
                   className="w-full py-3.5 px-4 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-extrabold text-xs shadow-md shadow-pink-600/20 flex items-center justify-center gap-2 transition-all cursor-pointer"
                 >
                   <CreditCard className="w-4 h-4" />
-                  <span>Confirmer et Payer 9 900 FCFA</span>
+                  <span>Confirmer et Payer 9 900 FCFA avec {paymentMethod}</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
             )}
+
 
             {payStep === 'processing' && (
               <div className="py-8 text-center space-y-3">

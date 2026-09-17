@@ -4,8 +4,10 @@ import { getTheme } from '../../lib/theme';
 import {
   createGeniusPayment,
   checkGeniusPaymentStatus,
-  isGeniusPayConfigured
+  isGeniusPayConfigured,
+  COUNTRY_PHONE_CONFIG
 } from '../../lib/geniuspay';
+import { CountryFlag } from '../common/CountryFlag';
 import {
   X,
   ShieldCheck,
@@ -27,6 +29,44 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
+// Catalogue des opérateurs supportés par pays
+const OPERATORS_BY_COUNTRY = {
+  SN: [
+    { id: 'Wave', name: 'Wave Sénégal', shortName: 'Wave', desc: 'Débit direct instantané sans frais', color: '#1DC3FF', textColor: '#000', badge: 'Recommandé' },
+    { id: 'Orange Money', name: 'Orange Money', shortName: 'Orange Money', desc: 'Push USSD / Code marchand', color: '#FF7900', textColor: '#FFF' },
+    { id: 'Carte Bancaire', name: 'Carte Bancaire', shortName: 'Carte Bancaire', desc: 'Visa / Mastercard sécurisé', color: '#2563EB', textColor: '#FFF' }
+  ],
+  CI: [
+    { id: 'Wave', name: 'Wave Côte d\'Ivoire', shortName: 'Wave CI', desc: 'Débit direct instantané', color: '#1DC3FF', textColor: '#000', badge: 'Populaire' },
+    { id: 'Orange Money', name: 'Orange Money CI', shortName: 'Orange Money', desc: 'Push OTP ou *144#', color: '#FF7900', textColor: '#FFF' },
+    { id: 'MTN MoMo', name: 'MTN Mobile Money', shortName: 'MTN MoMo', desc: 'Validation push mobile MTN', color: '#FFCC00', textColor: '#000' },
+    { id: 'Moov Money', name: 'Moov Money CI', shortName: 'Moov Money', desc: 'Validation directe Moov', color: '#0066B3', textColor: '#FFF' },
+    { id: 'Carte Bancaire', name: 'Carte Bancaire', shortName: 'Carte Bancaire', desc: 'Visa / Mastercard sécurisé', color: '#2563EB', textColor: '#FFF' }
+  ],
+  ML: [
+    { id: 'Orange Money', name: 'Orange Money Mali', shortName: 'Orange Money', desc: 'Validation rapide *144#', color: '#FF7900', textColor: '#FFF', badge: 'Recommandé' },
+    { id: 'Moov Money', name: 'Moov Money (Malitel)', shortName: 'Moov Money', desc: 'Validation push Moov', color: '#0066B3', textColor: '#FFF' },
+    { id: 'Wave', name: 'Wave Mali', shortName: 'Wave Mali', desc: 'Paiement direct Wave', color: '#1DC3FF', textColor: '#000' },
+    { id: 'Carte Bancaire', name: 'Carte Bancaire', shortName: 'Carte Bancaire', desc: 'Visa / Mastercard', color: '#2563EB', textColor: '#FFF' }
+  ],
+  BJ: [
+    { id: 'MTN MoMo', name: 'MTN MoMo Bénin', shortName: 'MTN MoMo', desc: 'Validation push instantanée', color: '#FFCC00', textColor: '#000', badge: 'Populaire' },
+    { id: 'Moov Money', name: 'Moov Money Bénin', shortName: 'Moov Flooz', desc: 'Validation push Flooz', color: '#0066B3', textColor: '#FFF' },
+    { id: 'Wave', name: 'Wave / Celtiis Cash', shortName: 'Wave Bénin', desc: 'Paiement mobile instantané', color: '#1DC3FF', textColor: '#000' },
+    { id: 'Carte Bancaire', name: 'Carte Bancaire', shortName: 'Carte Bancaire', desc: 'Visa / Mastercard', color: '#2563EB', textColor: '#FFF' }
+  ],
+  TG: [
+    { id: 'Moov Money', name: 'Moov Money (Flooz)', shortName: 'Moov Flooz', desc: 'Validation Moov Togo', color: '#0066B3', textColor: '#FFF', badge: 'Populaire' },
+    { id: 'T-Money', name: 'T-Money Togo', shortName: 'T-Money', desc: 'Paiement mobile Togo', color: '#008751', textColor: '#FFF' },
+    { id: 'Carte Bancaire', name: 'Carte Bancaire', shortName: 'Carte Bancaire', desc: 'Visa / Mastercard', color: '#2563EB', textColor: '#FFF' }
+  ],
+  BF: [
+    { id: 'Orange Money', name: 'Orange Money BF', shortName: 'Orange Money', desc: 'Validation par code OTP', color: '#FF7900', textColor: '#FFF', badge: 'Recommandé' },
+    { id: 'Moov Money', name: 'Moov Money BF', shortName: 'Moov Money', desc: 'Validation directe Moov', color: '#0066B3', textColor: '#FFF' },
+    { id: 'Carte Bancaire', name: 'Carte Bancaire', shortName: 'Carte Bancaire', desc: 'Visa / Mastercard', color: '#2563EB', textColor: '#FFF' }
+  ]
+};
+
 export const PaymentModal = () => {
   const {
     salon,
@@ -44,11 +84,22 @@ export const PaymentModal = () => {
     confirmPendingBooking
   } = useBooking();
 
+  const salonCountry = (salon?.country || 'SN').toUpperCase();
+  const availableMethods = OPERATORS_BY_COUNTRY[salonCountry] || OPERATORS_BY_COUNTRY.SN;
+  const phoneConfig = COUNTRY_PHONE_CONFIG[salonCountry] || COUNTRY_PHONE_CONFIG.SN;
+
   const theme = getTheme(salon?.theme);
-  const [paymentMethod, setPaymentMethod] = useState('Wave'); // 'Wave' | 'Orange Money'
+  const [paymentMethod, setPaymentMethod] = useState('Wave');
   const [customerPhone, setCustomerPhone] = useState(clientInfo.phone || '');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
+
+  // Synchroniser la méthode par défaut selon le pays du salon
+  useEffect(() => {
+    if (availableMethods.length > 0 && !availableMethods.some(m => m.id === paymentMethod)) {
+      setPaymentMethod(availableMethods[0].id);
+    }
+  }, [salonCountry]);
   
   // States: 'select' | 'processing' | 'awaiting' | 'approved'
   const [stepState, setStepState] = useState('select');
@@ -57,6 +108,7 @@ export const PaymentModal = () => {
   const [timeLeft, setTimeLeft] = useState(15 * 60); // 15 minutes en secondes
   const pollingRef = useRef(null);
   const timerRef = useRef(null);
+
 
   // Sync phone when clientInfo updates or modal opens
   useEffect(() => {
@@ -193,37 +245,40 @@ export const PaymentModal = () => {
       }
     }
 
-    // Sécurité P1.1 : Interdiction formelle de valider une réservation sans paiement Wave
+    // Sécurité P1.1 : Vérification de la configuration de paiement
     if (!isGeniusPayConfigured()) {
-      setErrorMsg("Le système de paiement Wave est momentanément indisponible ou en cours de maintenance. Veuillez contacter directement le salon pour bloquer votre créneau.");
+      setErrorMsg("Le système de paiement en ligne est momentanément indisponible ou en cours de maintenance. Veuillez contacter directement le salon pour bloquer votre créneau.");
       setStepState('select');
       setLoading(false);
       return;
     }
 
     try {
-      const salonWavePhone = salon?.paymentRecipientPhone || salon?.phone || salon?.whatsapp || '';
+      const salonRecipientPhone = salon?.wave_number || salon?.mobile_money_number || salon?.paymentRecipientPhone || salon?.phone || salon?.whatsapp || '';
       const res = await createGeniusPayment({
         amount: depositAmount,
         customerName: clientInfo.name || 'Cliente',
         customerPhone: customerPhone || clientInfo.phone,
-        paymentMethod: 'wave',
-        description: `Acompte ${selectedService?.name || 'Prestation'} (${formatFCFA(depositAmount)}) - ${salon?.name || 'Salon'} (Wave Salon: ${salonWavePhone})`,
+        paymentMethod: paymentMethod,
+        country: salonCountry,
+        description: `Acompte ${selectedService?.name || 'Prestation'} (${formatFCFA(depositAmount)}) - ${salon?.name || 'Salon'} (Salon: ${salonRecipientPhone})`,
         metadata: {
           recipient_type: 'salon',
-          recipient_phone: salonWavePhone,
+          recipient_phone: salonRecipientPhone,
           salon_id: salon?.id,
           salon_name: salon?.name,
           salon_phone: salon?.phone,
-          salon_wave: salonWavePhone,
+          salon_wave: salonRecipientPhone,
           practitioner_name: selectedPractitioner?.name || 'Non spécifiée',
           service_name: selectedService?.name,
           slot: selectedSlot,
           date: selectedDate,
           customer_phone: customerPhone || clientInfo.phone,
-          appointment_id: activePendingId
+          appointment_id: activePendingId,
+          payment_method: paymentMethod
         }
       });
+
 
       if (res?.success && res.data) {
         setTransactionData(res.data);
@@ -390,64 +445,139 @@ export const PaymentModal = () => {
           {stepState === 'select' && (
             <div className="space-y-4">
               
+              {/* Reassurance Banner: Acompte versé au salon exclusivement */}
+              <div className="p-3.5 bg-linear-to-r from-emerald-50 to-teal-50 border border-emerald-200/80 rounded-2xl flex items-center justify-between text-xs text-emerald-950 shadow-2xs">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-7 h-7 rounded-xl bg-emerald-500 text-white flex items-center justify-center text-xs font-black shrink-0 shadow-xs">
+                    ✓
+                  </div>
+                  <div className="min-w-0">
+                    <span className="font-extrabold block text-emerald-950 truncate">
+                      Bénéficiaire de l'acompte :
+                    </span>
+                    <span className="text-[11px] text-emerald-800 font-medium truncate block">
+                      Salon <strong>{salon?.name || 'Le Salon'}</strong>
+                    </span>
+                  </div>
+                </div>
+                {(salon?.wave_number || salon?.mobile_money_number || salon?.phone) && (
+                  <span className="font-mono font-bold text-emerald-900 bg-white/80 px-2.5 py-1 rounded-lg border border-emerald-200 text-[11px] shrink-0 ml-2">
+                    {salon?.wave_number || salon?.mobile_money_number || salon?.phone}
+                  </span>
+                )}
+              </div>
+
+              {/* Operator Selector Grid */}
               <div>
-                <label className="block text-xs font-black uppercase text-slate-700 tracking-wider mb-2 flex items-center gap-1.5">
-                  <Smartphone className="w-4 h-4 text-sky-600" />
-                  <span>Règlement sécurisé par Wave Sénégal :</span>
+                <label className="block text-xs font-black uppercase text-slate-700 tracking-wider mb-2.5 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <Smartphone className="w-4 h-4 text-pink-600" />
+                    <span>Moyen de paiement sécurisé :</span>
+                  </span>
+                  <span className="text-[10px] font-bold text-slate-500 flex items-center gap-1">
+                    <CountryFlag countryCode={phoneConfig.flag} className="w-3.5 h-2.5 rounded-xs object-cover" />
+                    <span>{phoneConfig.name}</span>
+                  </span>
                 </label>
 
-                {/* Wave Single Card */}
-                <div className="w-full">
-                  <div className="p-4 rounded-2xl border-2 border-[#1DC3FF] bg-[#1DC3FF]/5 ring-4 ring-[#1DC3FF]/15 shadow-md flex items-center justify-between">
-                    <div className="flex items-center gap-3.5">
-                      <div className="w-12 h-12 rounded-2xl bg-[#1DC3FF] text-white flex items-center justify-center font-black text-xl shadow-md shadow-[#1DC3FF]/30 shrink-0">
-                        <svg className="w-7 h-7 fill-white" viewBox="0 0 24 24">
-                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14.5h-2v-2h2v2zm0-4h-2V7h2v5.5z"/>
-                        </svg>
-                      </div>
-                      <div className="text-left">
-                        <span className="font-black text-sm text-slate-950 block">Wave Sénégal 🇸🇳</span>
-                        <span className="text-xs text-sky-700 font-bold">Débit direct sans frais • Instantané</span>
-                      </div>
-                    </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {availableMethods.map((method) => {
+                    const isSelected = paymentMethod === method.id;
+                    return (
+                      <button
+                        key={method.id}
+                        type="button"
+                        onClick={() => setPaymentMethod(method.id)}
+                        className={`p-3 rounded-2xl border-2 text-left transition-all cursor-pointer flex items-center justify-between relative overflow-hidden ${
+                          isSelected
+                            ? 'border-pink-500 bg-pink-50/60 ring-2 ring-pink-500/20 shadow-xs'
+                            : 'border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50/60'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          {/* Method Color Avatar */}
+                          <div
+                            className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-xs shrink-0 shadow-xs"
+                            style={{
+                              backgroundColor: method.color,
+                              color: method.textColor || '#FFF'
+                            }}
+                          >
+                            {method.id === 'Wave' ? (
+                              <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14.5h-2v-2h2v2zm0-4h-2V7h2v5.5z"/>
+                              </svg>
+                            ) : method.id === 'Carte Bancaire' ? (
+                              <CreditCard className="w-5 h-5" />
+                            ) : (
+                              <span>{method.shortName.slice(0, 2).toUpperCase()}</span>
+                            )}
+                          </div>
 
-                    <div className="w-6 h-6 rounded-full bg-[#1DC3FF] text-white flex items-center justify-center shrink-0">
-                      <Check className="w-3.5 h-3.5 stroke-[3]" />
-                    </div>
-                  </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-extrabold text-xs text-slate-900 truncate block">
+                                {method.name}
+                              </span>
+                            </div>
+                            <span className="text-[10px] text-slate-500 block truncate">
+                              {method.desc}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="shrink-0 ml-2">
+                          <div className={`w-5 h-5 rounded-full flex items-center justify-center transition-all ${
+                            isSelected
+                              ? 'bg-pink-600 text-white'
+                              : 'border-2 border-slate-300'
+                          }`}>
+                            {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
               {/* Phone Verification Input */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
-                  <span>Numéro Wave de paiement :</span>
-                  <span className="text-[11px] text-sky-700 font-bold">Compte Wave</span>
-                </label>
-                <div className="relative">
-                  <div className="absolute left-3.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-xs font-bold text-slate-700 pr-2.5 border-r border-slate-200">
-                    <span>🇸🇳</span>
-                    <span>+221</span>
+              {paymentMethod !== 'Carte Bancaire' ? (
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
+                    <span>Numéro {paymentMethod} pour le débit :</span>
+                    <span className="text-[11px] text-pink-600 font-bold">Compte {paymentMethod}</span>
+                  </label>
+                  <div className="relative">
+                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-xs font-bold text-slate-700 pr-2.5 border-r border-slate-200">
+                      <CountryFlag countryCode={phoneConfig.flag} className="w-4 h-3 rounded-xs object-cover" />
+                      <span>{phoneConfig.code}</span>
+                    </div>
+                    <input
+                      type="tel"
+                      value={customerPhone}
+                      onChange={(e) => setCustomerPhone(e.target.value)}
+                      placeholder={phoneConfig.placeholder || '77 123 45 67'}
+                      className="w-full pl-24 pr-4 py-3 rounded-xl border border-slate-200 text-sm font-mono font-bold focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 bg-slate-50/40"
+                      required
+                    />
                   </div>
-                  <input
-                    type="tel"
-                    value={customerPhone}
-                    onChange={(e) => setCustomerPhone(e.target.value)}
-                    placeholder="77 123 45 67"
-                    className="w-full pl-24 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm font-mono font-bold focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 bg-slate-50/40"
-                    required
-                  />
                 </div>
-              </div>
+              ) : (
+                <div className="p-3 bg-blue-50/70 border border-blue-200 rounded-xl text-xs text-blue-900 flex items-center gap-2">
+                  <CreditCard className="w-4 h-4 text-blue-600 shrink-0" />
+                  <span>Vous serez redirigée vers la passerelle sécurisée Visa / Mastercard certifiée PCI-DSS.</span>
+                </div>
+              )}
 
               {/* Main Submit Action Button */}
               <button
                 type="button"
                 onClick={handleInitiatePayment}
-                className="w-full py-4 px-5 rounded-2xl font-black text-sm shadow-lg flex items-center justify-center gap-2.5 transition-all cursor-pointer transform active:scale-[0.99] bg-[#1DC3FF] hover:bg-[#0ebaf6] text-slate-950 shadow-[#1DC3FF]/30"
+                className="w-full py-4 px-5 rounded-2xl font-black text-sm shadow-lg flex items-center justify-center gap-2.5 transition-all cursor-pointer transform active:scale-[0.99] bg-pink-600 hover:bg-pink-700 text-white shadow-pink-600/25"
               >
                 <Smartphone className="w-5 h-5 shrink-0" />
-                <span>Payer l'acompte de {formatFCFA(depositAmount)} avec Wave</span>
+                <span>Payer l'acompte de {formatFCFA(depositAmount)} avec {paymentMethod}</span>
                 <ArrowRight className="w-5 h-5 shrink-0" />
               </button>
 
@@ -459,7 +589,7 @@ export const PaymentModal = () => {
                 <span>•</span>
                 <span>Sans frais cachés</span>
                 <span>•</span>
-                <span>Validation instantanée</span>
+                <span>Confirmation instantanée</span>
               </div>
             </div>
           )}
@@ -467,14 +597,12 @@ export const PaymentModal = () => {
           {/* ================= STEP: PROCESSING ================= */}
           {stepState === 'processing' && (
             <div className="py-10 flex flex-col items-center justify-center text-center space-y-4 animate-in fade-in">
-              <div className={`w-20 h-20 rounded-3xl flex items-center justify-center text-white shadow-xl animate-pulse ${
-                paymentMethod === 'Wave' ? 'bg-[#1DC3FF] shadow-[#1DC3FF]/40' : 'bg-[#FF7900] shadow-[#FF7900]/40'
-              }`}>
+              <div className="w-20 h-20 rounded-3xl flex items-center justify-center text-white shadow-xl animate-pulse bg-pink-600 shadow-pink-600/30">
                 <Loader2 className="w-10 h-10 animate-spin" />
               </div>
               <div className="space-y-1">
                 <h4 className="font-black text-slate-900 text-lg">
-                  Connexion à {paymentMethod} Sénégal...
+                  Connexion à {paymentMethod}...
                 </h4>
                 <p className="text-xs text-slate-500 max-w-xs mx-auto">
                   Génération de votre session de paiement sécurisée de <strong>{formatFCFA(depositAmount)}</strong> via Genius Pay.
@@ -514,11 +642,16 @@ export const PaymentModal = () => {
                     1
                   </div>
                   <h4 className="font-black text-xs sm:text-sm">
-                    Validez le paiement sur votre application {paymentMethod}
+                    {paymentMethod === 'Wave'
+                      ? 'Validez le paiement sur votre application Wave'
+                      : `Finalisez votre paiement sur la page sécurisée ${paymentMethod}`}
                   </h4>
                 </div>
                 <p className="text-xs text-amber-800/90 pl-8 leading-relaxed">
-                  Une invite de paiement de <strong>{formatFCFA(depositAmount)}</strong> a été envoyée vers votre numéro. Ouvrez l'application pour confirmer.
+                  {paymentMethod === 'Wave'
+                    ? <>Une invite de paiement de <strong>{formatFCFA(depositAmount)}</strong> a été ouverte. Confirmez le paiement sur Wave.</>
+                    : <>La passerelle sécurisée Genius Pay s'est ouverte pour régler les <strong>{formatFCFA(depositAmount)}</strong> via {paymentMethod}.</>
+                  }
                 </p>
               </div>
 
@@ -528,16 +661,13 @@ export const PaymentModal = () => {
                   href={transactionData.checkout_url || transactionData.payment_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`w-full py-3.5 px-4 rounded-2xl font-black text-sm shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                    paymentMethod === 'Wave'
-                      ? 'bg-[#1DC3FF] hover:bg-[#0ebaf6] text-slate-950 shadow-[#1DC3FF]/25'
-                      : 'bg-[#FF7900] hover:bg-[#ea6f00] text-white shadow-[#FF7900]/25'
-                  }`}
+                  className="w-full py-3.5 px-4 rounded-2xl font-black text-sm shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer bg-pink-600 hover:bg-pink-700 text-white shadow-pink-600/25"
                 >
                   <span>Ouvrir la page de paiement {paymentMethod}</span>
                   <ExternalLink className="w-4 h-4" />
                 </a>
               )}
+
 
               {/* Automatic detection indicator & Manual validation */}
               <div className="pt-2 text-center space-y-3">

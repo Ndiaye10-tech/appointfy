@@ -36,15 +36,31 @@ export const isGeniusPayConfigured = () => {
   return Boolean(import.meta.env.VITE_SUPABASE_URL);
 };
 
+export const COUNTRY_PHONE_CONFIG = {
+  SN: { code: '+221', digits: 9, name: 'Sénégal', flag: '🇸🇳' },
+  CI: { code: '+225', digits: 10, name: "Côte d'Ivoire", flag: '🇨🇮' },
+  ML: { code: '+223', digits: 8, name: 'Mali', flag: '🇲🇱' },
+  BJ: { code: '+229', digits: 8, name: 'Bénin', flag: '🇧🇯' },
+  TG: { code: '+228', digits: 8, name: 'Togo', flag: '🇹🇬' },
+  BF: { code: '+226', digits: 8, name: 'Burkina Faso', flag: '🇧🇫' }
+};
+
 /**
- * Format and normalize Senegalese and international phone numbers to E.164 standard (+221...)
+ * Format and normalize international phone numbers to E.164 standard based on country
  */
-export const formatInternationalPhone = (phone = '') => {
-  const digits = phone.replace(/[^\d+]/g, '');
+export const formatInternationalPhone = (phone = '', country = 'SN') => {
+  const digits = String(phone || '').replace(/[^\d+]/g, '');
+  if (!digits) return '';
   if (digits.startsWith('+')) return digits;
-  if (digits.startsWith('221')) return `+${digits}`;
-  if (digits.length === 9) return `+221${digits}`;
-  return `+221${digits}`;
+
+  const countryKey = String(country || 'SN').toUpperCase();
+  const config = COUNTRY_PHONE_CONFIG[countryKey] || COUNTRY_PHONE_CONFIG.SN;
+  const numCode = config.code.replace('+', '');
+
+  if (digits.startsWith(numCode)) {
+    return `+${digits}`;
+  }
+  return `${config.code}${digits}`;
 };
 
 /**
@@ -56,7 +72,8 @@ export const createGeniusPayment = async ({
   customerPhone,
   customerEmail,
   description = 'Acompte réservation salon',
-  paymentMethod,
+  paymentMethod, // 'Wave', 'Orange Money', 'MTN MoMo', 'Moov Money', 'Carte Bancaire', etc.
+  country = 'SN',
   metadata = {},
   successUrl,
   errorUrl
@@ -65,8 +82,10 @@ export const createGeniusPayment = async ({
     throw new Error('Identifiants Genius Pay manquants. Vérifiez votre configuration.');
   }
 
-  const safeAmount = Math.max(100, Math.round(Number(amount) || 100));
-  const formattedPhone = formatInternationalPhone(customerPhone);
+  // Minimum requis par Genius Pay en XOF : 200 FCFA
+  const safeAmount = Math.max(200, Math.round(Number(amount) || 200));
+  const safeCountry = String(country || 'SN').toUpperCase();
+  const formattedPhone = formatInternationalPhone(customerPhone, safeCountry);
 
   const payload = {
     amount: safeAmount,
@@ -75,12 +94,14 @@ export const createGeniusPayment = async ({
     customer: {
       name: customerName || 'Client Appointfy',
       phone: formattedPhone,
-      country: 'SN'
+      country: safeCountry
     },
     metadata: {
       ...metadata,
       platform: 'Appointfy',
-      client_phone: formattedPhone
+      client_phone: formattedPhone,
+      country: safeCountry,
+      payment_method_selected: paymentMethod || 'Multi-Paiement'
     }
   };
 
@@ -88,8 +109,12 @@ export const createGeniusPayment = async ({
     payload.customer.email = customerEmail;
   }
 
-  // Wave Sénégal est la méthode de paiement exclusive de la plateforme
-  payload.payment_method = 'wave';
+  // Si Wave est explicitement sélectionné, rediriger directement vers Wave
+  if (paymentMethod && paymentMethod.toLowerCase() === 'wave') {
+    payload.payment_method = 'wave';
+  }
+  // Sinon (Orange Money, MTN, Moov, Carte ou Multi), laisser payment_method vide
+  // pour que GeniusPay affiche sa passerelle multi-opérateurs sécurisée.
 
   if (successUrl) payload.success_url = successUrl;
   if (errorUrl) payload.error_url = errorUrl;
@@ -113,7 +138,14 @@ export const createGeniusPayment = async ({
         throw new Error(errorMsg);
       }
 
-      return { success: true, data: data.data };
+      const raw = data.data || {};
+      const normalizedData = {
+        ...raw,
+        checkout_url: raw.checkout_url || raw.payment_url,
+        payment_url: raw.payment_url || raw.checkout_url
+      };
+
+      return { success: true, data: normalizedData };
     }
 
     // En production: appel via Supabase Edge Function
@@ -125,7 +157,14 @@ export const createGeniusPayment = async ({
         customerEmail,
         description: description.slice(0, 500),
         paymentMethod,
-        metadata: { ...metadata, platform: 'Appointfy', client_phone: formattedPhone },
+        country: safeCountry,
+        metadata: {
+          ...metadata,
+          platform: 'Appointfy',
+          client_phone: formattedPhone,
+          country: safeCountry,
+          payment_method_selected: paymentMethod || 'Multi-Paiement'
+        },
         successUrl,
         errorUrl
       }
@@ -134,7 +173,14 @@ export const createGeniusPayment = async ({
     if (error) throw new Error(error.message || 'Erreur Edge Function');
     if (!data || !data.success) throw new Error(data?.error || 'Erreur Genius Pay inconnue');
 
-    return { success: true, data: data.data };
+    const raw = data.data || {};
+    const normalizedData = {
+      ...raw,
+      checkout_url: raw.checkout_url || raw.payment_url,
+      payment_url: raw.payment_url || raw.checkout_url
+    };
+
+    return { success: true, data: normalizedData };
   } catch (err) {
     console.error('Erreur API Genius Pay (createPayment):', err);
     throw err;
