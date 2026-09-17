@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { initialSalon, initialServices, initialAppointments, DEFAULT_PRODUCTS } from '../data/mockData';
 import { supabase } from '../lib/supabase';
 import { DEFAULT_SCHEDULE, formatScheduleSummary } from '../lib/schedule';
+import { BUSINESS_TYPES } from '../data/businessTemplates';
 
 const BookingContext = createContext();
 
@@ -966,7 +967,7 @@ export const BookingProvider = ({ children }) => {
         deposit_rate: onboardingData.deposit_rate ?? 0.20,
         notification_settings: {
           owner_name: onboardingData.owner_name || '',
-          business_type: onboardingData.business_type || 'beauty_studio',
+          business_type: onboardingData.business_type || 'hair_braids',
           work_mode: onboardingData.work_mode || 'salon',
           wave_number: onboardingData.wave_number || onboardingData.phone,
           country: onboardingData.country || 'SN',
@@ -976,6 +977,10 @@ export const BookingProvider = ({ children }) => {
           paymentRecipientPhone: onboardingData.wave_number || onboardingData.phone,
           acceptCash: true,
           acceptWave: true,
+          sound_enabled: true,
+          sound_preset: 'cash',
+          push_enabled: true,
+          in_app_alerts: true,
           whatsappConfirmEnabled: true,
           whatsappReminderEnabled: true
         }
@@ -1022,7 +1027,7 @@ export const BookingProvider = ({ children }) => {
         story: null,
         owner_name: onboardingData.owner_name || effectiveSalon.owner_name || '',
         country: effectiveSalon.country || 'SN',
-        business_type: effectiveSalon.business_type || 'beauty_studio',
+        business_type: effectiveSalon.business_type || 'hair_braids',
         work_mode: effectiveSalon.work_mode || 'salon',
         wave_number: effectiveSalon.wave_number || effectiveSalon.phone,
         depositRate: effectiveSalon.deposit_rate,
@@ -1032,8 +1037,38 @@ export const BookingProvider = ({ children }) => {
         paymentRecipientPhone: effectiveSalon.notification_settings?.paymentRecipientPhone || effectiveSalon.phone
       });
 
-      // Page vierge : aucune prestation factice injectée d'office
-      setServices([]);
+      // Injection automatique des prestations réelles adaptées au métier choisi (ex: Coiffure, Onglerie, etc.)
+      const selectedType = BUSINESS_TYPES[onboardingData.business_type || 'hair_braids'];
+      const defaultTplServices = selectedType?.defaultServices || [];
+      let initialServicesList = [];
+
+      if (effectiveSalon.id && defaultTplServices.length > 0) {
+        try {
+          const servicesToInsert = defaultTplServices.map(s => ({
+            salon_id: effectiveSalon.id,
+            name: s.name,
+            duration: s.duration,
+            price: s.price,
+            category: s.category || 'Général',
+            description: s.description || '',
+            is_active: true
+          }));
+
+          const { data: insertedServices, error: srvErr } = await supabase
+            .from('services')
+            .insert(servicesToInsert)
+            .select();
+
+          if (!srvErr && insertedServices) {
+            initialServicesList = insertedServices;
+          }
+        } catch (srvInsertErr) {
+          console.warn('Injection prestations template warning:', srvInsertErr);
+        }
+      }
+
+      setServices(initialServicesList);
+      localStorage.setItem('appointfy_services', JSON.stringify(initialServicesList));
 
       if (effectiveSalon.id) {
         setMySalonId(effectiveSalon.id);

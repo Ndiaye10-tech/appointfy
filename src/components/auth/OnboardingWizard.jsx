@@ -2,21 +2,31 @@ import React, { useState } from 'react';
 import { useBooking } from '../../context/BookingContext';
 import { supabase } from '../../lib/supabase';
 import { COUNTRIES, DEFAULT_COUNTRY, formatPhoneNumber } from '../../data/countries';
-import { BUSINESS_TYPES, WORK_MODES, DEPOSIT_OPTIONS } from '../../data/businessTemplates';
+import { BUSINESS_TYPES } from '../../data/businessTemplates';
 import {
-  MapPin,
   Sparkles,
-  Phone,
-  Store,
-  CheckCircle2,
   ArrowRight,
   ArrowLeft,
+  Check,
+  CheckCircle2,
+  Scissors,
+  Eye,
+  Heart,
+  Store,
   ShieldCheck,
-  MessageCircle,
+  BellRing,
+  Phone,
   Mail,
   Lock,
   User,
-  X
+  AlertCircle,
+  X,
+  MessageCircle,
+  BookOpen,
+  AlertTriangle,
+  Home,
+  Rocket,
+  CreditCard
 } from 'lucide-react';
 
 export const OnboardingWizard = ({
@@ -28,30 +38,29 @@ export const OnboardingWizard = ({
 }) => {
   if (!isOpen) return null;
 
-  const { currentUser, setCurrentUser, setCurrentView } = useBooking();
-  const [step, setStep] = useState(1);
+  const { currentUser, setCurrentUser, completeOnboarding } = useBooking();
+
+  // stage: 0 = Accueil / Hook, 1 = Nom du salon, 2 = Spécialité, 3 = Situation, 4 = Pays, 5 = Compte & Alertes
+  const [stage, setStage] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   // Form State
   const [formData, setFormData] = useState({
-    country: initialData.country || DEFAULT_COUNTRY,
-    city: initialData.city || '',
-    address: initialData.address || '',
-    businessType: initialData.businessType || 'beauty_studio',
-    workMode: initialData.workMode || 'salon',
     brandName: initialData.brandName || '',
+    slug: '',
+    businessType: initialData.businessType || 'hair_braids',
+    situation: 'whatsapp', // 'whatsapp', 'carnet', 'lapins', 'domicile', 'start'
+    country: initialData.country || DEFAULT_COUNTRY,
     ownerName: initialData.ownerName || '',
+    phone: initialData.phone || '',
     email: initialData.email || '',
     password: initialData.password || '',
-    slug: '',
-    phone: initialData.phone || '',
-    waveNumber: initialData.waveNumber || '',
-    depositOption: 'rate_20',
     ...initialData
   });
 
   const currentCountry = COUNTRIES[formData.country] || COUNTRIES.SN;
-  const currentBusiness = BUSINESS_TYPES[formData.businessType] || BUSINESS_TYPES.beauty_studio;
+  const currentBusiness = BUSINESS_TYPES[formData.businessType] || BUSINESS_TYPES.hair_braids;
 
   const handleBrandNameChange = (val) => {
     const slugified = val
@@ -64,70 +73,59 @@ export const OnboardingWizard = ({
     setFormData(prev => ({
       ...prev,
       brandName: val,
-      slug: slugified || 'mon-etablissement'
+      slug: slugified || 'mon-salon'
     }));
   };
 
-  const totalSteps = currentUser?.id ? 4 : 5;
+  const handleNext = () => {
+    setErrorMsg('');
 
-  const handleNextStep = () => {
-    if (step === 1) {
-      if (!formData.ownerName.trim()) {
-        alert('Veuillez saisir votre prénom et nom.');
-        return;
-      }
+    if (stage === 1) {
       if (!formData.brandName.trim()) {
-        alert('Veuillez saisir le nom de votre marque.');
+        setErrorMsg('Veuillez donner un nom à votre salon ou activité.');
         return;
       }
-    } else if (step === 2) {
-      if (!formData.address.trim() && !formData.city.trim()) {
-        alert('Veuillez préciser votre adresse ou quartier.');
+    } else if (stage === 4) {
+      if (!formData.country) {
+        setErrorMsg('Veuillez sélectionner votre pays.');
         return;
       }
-    } else if (step === 3) {
-      if (!formData.phone.trim()) {
-        alert('Veuillez renseigner votre numéro WhatsApp professionnel.');
-        return;
-      }
-      if (!formData.waveNumber.trim()) {
-        formData.waveNumber = formData.phone;
-      }
-    } else if (step === 4) {
-      if (currentUser?.id) {
-        handleFinalize();
-        return;
-      }
-    } else if (step === 5) {
-      if (!currentUser?.id) {
-        if (!formData.email.trim()) {
-          alert('Veuillez renseigner votre email.');
-          return;
-        }
-        if (!formData.password || formData.password.length < 6) {
-          alert('Le mot de passe doit contenir au moins 6 caractères.');
-          return;
-        }
-      }
-      handleFinalize();
+    }
+
+    setStage(prev => prev + 1);
+  };
+
+  const handlePrev = () => {
+    setErrorMsg('');
+    if (stage > 0) {
+      setStage(prev => prev - 1);
+    }
+  };
+
+  const handleFinalize = async (e) => {
+    if (e) e.preventDefault();
+    setErrorMsg('');
+
+    if (!formData.ownerName.trim()) {
+      setErrorMsg('Veuillez renseigner votre prénom et nom.');
       return;
     }
-
-    setStep(prev => prev + 1);
-  };
-
-  const handlePrevStep = () => {
-    if (step > 1) {
-      setStep(prev => prev - 1);
+    if (!currentUser?.id) {
+      if (!formData.email.trim() || !formData.email.includes('@')) {
+        setErrorMsg('Veuillez renseigner une adresse email valide.');
+        return;
+      }
+      if (!formData.password || formData.password.length < 6) {
+        setErrorMsg('Le mot de passe doit comporter au moins 6 caractères.');
+        return;
+      }
     }
-  };
 
-  const handleFinalize = async () => {
     setSubmitting(true);
     try {
       let currentUserId = currentUser?.id || null;
 
-      // Création du compte gérant dans Supabase Auth si non connecté
+      // 1. Création compte Supabase Auth si non connecté
       if (!currentUserId && formData.email && formData.password) {
         const { data: authData, error: authError } = await supabase.auth.signUp({
           email: formData.email.trim(),
@@ -161,403 +159,575 @@ export const OnboardingWizard = ({
         }
       }
 
-      const selectedDeposit = DEPOSIT_OPTIONS.find(d => d.id === formData.depositOption) || DEPOSIT_OPTIONS[0];
+      // 2. Finalisation et enregistrement du salon avec template métier
+      const cleanPhone = formData.phone.trim() ? `${currentCountry.dialCode} ${formData.phone.trim()}` : '';
 
-      const resolvedAddress = (formData.address || formData.city || '').trim();
-      const resolvedCity = (formData.city || formData.address || '').trim();
-
-      // Données propres : AUCUNE fausse donnée, page vierge
       const finalizedData = {
         owner_id: currentUserId,
         owner_name: formData.ownerName.trim(),
         name: formData.brandName.trim(),
         slug: formData.slug || 'salon-' + Math.floor(100 + Math.random() * 900),
-        country: 'SN',
-        city: resolvedCity ? `${resolvedCity}, Sénégal` : 'Dakar, Sénégal',
-        address: resolvedAddress,
+        country: formData.country,
+        city: currentCountry.defaultCity || 'Dakar',
+        address: currentCountry.defaultCity || 'Dakar',
         business_type: formData.businessType,
-        work_mode: formData.workMode,
-        phone: `${currentCountry.dialCode} ${formData.phone.trim()}`,
-        whatsapp: `${currentCountry.dialCode.replace('+', '')}${formData.phone.replace(/\D/g, '')}`,
-        wave_number: `${currentCountry.dialCode} ${(formData.waveNumber || formData.phone).trim()}`,
-        deposit_required: selectedDeposit.value > 0,
-        deposit_type: selectedDeposit.type,
-        deposit_rate: selectedDeposit.type === 'percent' ? selectedDeposit.value / 100 : 0.20,
-        deposit_fixed: selectedDeposit.type === 'fixed' ? selectedDeposit.value : 0,
-        template_services: [],
-        tagline: '',
-        hero_subtitle: ''
+        work_mode: 'salon',
+        phone: cleanPhone,
+        whatsapp: cleanPhone,
+        wave_number: cleanPhone,
+        deposit_rate: 0.20,
+        deposit_type: 'rate',
+        deposit_required: true
       };
 
       if (onComplete) {
         await onComplete(finalizedData);
+      } else {
+        await completeOnboarding(finalizedData);
       }
 
-      // Redirection immédiate vers le Dashboard gérant (zéro phase intermédiaire)
-      setCurrentView('salon');
     } catch (err) {
-      console.error('Erreur finalisation onboarding:', err);
-      alert(err.message || "Une erreur est survenue lors de l'enregistrement. Veuillez réessayer.");
+      console.error('Erreur inscription onboarding:', err);
+      setErrorMsg(err.message || 'Une erreur est survenue lors de la création de votre salon.');
     } finally {
       setSubmitting(false);
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[92dvh] border border-pink-100 overflow-hidden flex flex-col">
-        
-        {/* ================= TOP HEADER (COMPACT & SLEEK) ================= */}
-        <div className="px-5 sm:px-6 pt-4 sm:pt-5 pb-3 border-b border-pink-50 flex items-center justify-between shrink-0">
-          <div>
-            <span className="text-[10px] font-black uppercase tracking-wider text-pink-600 bg-pink-50 px-2.5 py-1 rounded-full border border-pink-100">
-              Étape {step} sur {totalSteps}
-            </span>
-            <h2 className="text-sm sm:text-base font-extrabold text-gray-900 mt-1">
-              Configuration de votre vitrine pro 🇸🇳
-            </h2>
-          </div>
+  // Nom d'usage pour la personnalisation
+  const ownerFirstName = formData.ownerName.trim() ? formData.ownerName.trim().split(' ')[0] : (formData.brandName ? formData.brandName.split(' ')[0] : 'chère gérante');
 
-            <div className="flex items-center gap-2">
-              {onSwitchToLogin && !currentUser?.id && (
-                <button
-                  type="button"
-                  onClick={onSwitchToLogin}
-                  className="text-xs font-bold text-gray-500 hover:text-pink-600 transition cursor-pointer"
-                >
-                  Se connecter
-                </button>
-              )}
+  return (
+    <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+      <div className="w-full max-w-xl bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-200">
+        
+        {/* ================= BARRE DU HAUT : NAVIGATION & PROGRESSION ================= */}
+        {stage > 0 && (
+          <div className="border-b border-slate-100 bg-white px-5 py-3.5">
+            <div className="flex items-center justify-between">
               <button
                 type="button"
-                onClick={onClose}
-                className="w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 flex items-center justify-center transition cursor-pointer"
+                onClick={handlePrev}
+                className="p-1.5 -ml-1.5 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors flex items-center gap-1 text-xs font-bold cursor-pointer"
               >
-                <X size={15} />
+                <ArrowLeft className="w-4 h-4" />
+                <span className="hidden sm:inline">Retour</span>
               </button>
+
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-black tracking-tight text-slate-950">
+                  Appoint<span className="text-pink-600">fy</span>
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-400">
+                  Étape {stage}/5
+                </span>
+                {onClose && (
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Barre de progression fluide */}
+            <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-3">
+              <div
+                className="bg-gradient-to-r from-pink-500 to-pink-600 h-full transition-all duration-300 rounded-full"
+                style={{ width: `${(stage / 5) * 100}%` }}
+              />
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Progress Line */}
-        <div className="w-full bg-gray-100 h-1 shrink-0">
-          <div
-            className="bg-pink-600 h-1 transition-all duration-300 ease-out"
-            style={{ width: `${(step / totalSteps) * 100}%` }}
-          />
-        </div>
+        {/* Message d'erreur s'il y a lieu */}
+        {errorMsg && (
+          <div className="mx-6 mt-4 p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+            <span>{errorMsg}</span>
+          </div>
+        )}
 
-        {/* ================= CONTENT: EXACTLY 2 QUESTIONS PER SCREEN ================= */}
-        <div className="p-5 sm:p-6 space-y-5 sm:space-y-6 overflow-y-auto flex-1">
+        {/* ================= CONTENU PAR ÉTAPE ================= */}
+        <div className="p-6 sm:p-8">
 
-          {/* ================= ÉCRAN 1 (2 QUESTIONS : GÉRANT & MARQUE) ================= */}
-          {step === 1 && (
-            <div className="space-y-5 animate-in fade-in duration-200">
-              {/* Question 1 */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-pink-600 flex items-center gap-1.5">
-                  <User size={14} /> 1. Comment vous appelez-vous ?
-                </label>
-                <input
-                  type="text"
-                  autoFocus
-                  value={formData.ownerName}
-                  onChange={(e) => setFormData(prev => ({ ...prev, ownerName: e.target.value }))}
-                  placeholder="Ex: Fatou Diop, Mamadou Ndiaye..."
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-pink-500 focus:ring-2 focus:ring-pink-100 font-bold text-gray-900 text-sm"
-                />
-                <p className="text-[11px] text-gray-500">
-                  Prénom & nom du gérant(e) affiché sur votre tableau de bord.
+          {/* ---------------- 0. ÉCRAN D'ACCUEIL / HOOK ---------------- */}
+          {stage === 0 && (
+            <div className="text-center space-y-6 py-2">
+              <div className="flex justify-center">
+                <span className="text-2xl font-black tracking-tight text-slate-950">
+                  Appoint<span className="text-pink-600">fy</span>
+                </span>
+              </div>
+
+              <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-pink-50 text-pink-700 text-xs font-black border border-pink-200 shadow-2xs">
+                <span>⏱️ 60 secondes chrono</span>
+              </div>
+
+              <div className="space-y-2 max-w-md mx-auto">
+                <h1 className="text-2xl sm:text-3xl font-black text-slate-950 tracking-tight leading-tight">
+                  Réponds à 5 questions.<br />
+                  Ton salon sera <span className="text-pink-600">prêt</span>.
+                </h1>
+                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                  Pas de blabla, pas de formulaire compliqué. Tu réponds, on prépare ton site de réservation pendant ce temps. Gratuit.
                 </p>
               </div>
 
-              {/* Question 2 */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-pink-600 flex items-center gap-1.5">
-                  <Store size={14} /> 2. Quel est le nom de votre marque ou enseigne ?
-                </label>
-                <input
-                  type="text"
-                  value={formData.brandName}
-                  onChange={(e) => handleBrandNameChange(e.target.value)}
-                  placeholder="Ex: BEAUTY AFRICA, Prestige Barber, Diarra Nails..."
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-pink-500 focus:ring-2 focus:ring-pink-100 font-bold text-gray-900 text-base"
-                />
-                {/* Live Link Badge */}
-                <div className="px-3 py-1.5 bg-pink-50/80 border border-pink-200 rounded-xl flex items-center justify-between text-xs font-mono">
-                  <span className="text-pink-700 font-bold flex items-center gap-1">
-                    <Sparkles size={13} /> appointfy.me/{formData.slug || 'votre-nom'}
-                  </span>
-                  <span className="text-[10px] text-pink-500 font-sans">Lien direct</span>
+              {/* Preuve sociale */}
+              <div className="flex items-center justify-center gap-2.5 pt-1">
+                <div className="flex -space-x-2 overflow-hidden">
+                  <div className="w-7 h-7 rounded-full bg-pink-600 text-white font-bold text-[10px] flex items-center justify-center border-2 border-white">AD</div>
+                  <div className="w-7 h-7 rounded-full bg-purple-600 text-white font-bold text-[10px] flex items-center justify-center border-2 border-white">FD</div>
+                  <div className="w-7 h-7 rounded-full bg-amber-500 text-white font-bold text-[10px] flex items-center justify-center border-2 border-white">MD</div>
                 </div>
+                <span className="text-xs font-semibold text-slate-600">
+                  <strong className="text-slate-900">+150 salons</strong> reçoivent déjà leurs réservations
+                </span>
+              </div>
+
+              <div className="pt-4 space-y-3 max-w-sm mx-auto">
+                <button
+                  type="button"
+                  onClick={() => setStage(1)}
+                  className="w-full py-3.5 px-6 rounded-2xl bg-pink-600 hover:bg-pink-700 active:scale-98 text-white font-black text-sm sm:text-base flex items-center justify-center gap-2 shadow-lg shadow-pink-200 transition-all cursor-pointer"
+                >
+                  <span>C'est parti</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+
+                {onSwitchToLogin && (
+                  <button
+                    type="button"
+                    onClick={onSwitchToLogin}
+                    className="block w-full text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors py-1 cursor-pointer"
+                  >
+                    J'ai déjà un compte Appointfy
+                  </button>
+                )}
               </div>
             </div>
           )}
 
-          {/* ================= ÉCRAN 2 (2 QUESTIONS : LOCALISATION & MÉTIER) ================= */}
-          {step === 2 && (
-            <div className="space-y-5 animate-in fade-in duration-200">
-              {/* Question 3 */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-pink-600 flex items-center gap-1.5">
-                  <MapPin size={14} /> 3. Où se situe votre salon au Sénégal ? (Adresse ou quartier)
-                </label>
+          {/* ---------------- 1. ÉTAPE 1/5 : NOM DU SALON ---------------- */}
+          {stage === 1 && (
+            <div className="space-y-6">
+              <div className="space-y-1 text-center sm:text-left">
+                <h2 className="text-xl sm:text-2xl font-black text-slate-950 tracking-tight">
+                  Comment s'appelle ton salon ?
+                </h2>
+                <p className="text-xs text-slate-500">
+                  C'est le nom que tes clientes verront. Tu pourras le changer plus tard.
+                </p>
+              </div>
+
+              <div>
                 <input
                   type="text"
-                  value={formData.address || formData.city}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setFormData(prev => ({ ...prev, address: val, city: val }));
-                  }}
-                  placeholder="Ex: Grand Mbao, Route des Almadies, Mermoz..."
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-pink-500 focus:ring-2 focus:ring-pink-100 font-medium text-gray-900 text-sm"
+                  autoFocus
+                  value={formData.brandName}
+                  onChange={(e) => handleBrandNameChange(e.target.value)}
+                  placeholder="Ex : Awa Beauty Studio"
+                  className="w-full px-4 py-3.5 rounded-2xl border-2 border-slate-200 focus:border-pink-600 focus:outline-none text-base sm:text-lg font-bold text-slate-900 placeholder:text-slate-400 transition-all"
                 />
-                <p className="text-[11px] text-gray-500">
-                  Cette adresse sera affichée sur votre site client et reste modifiable à tout moment.
-                </p>
-                {/* Fast Chips */}
-                <div className="flex flex-wrap gap-1.5 pt-0.5">
-                  {['Grand Mbao', 'Almadies', 'Mermoz', 'Plateau', 'Thiès'].map((pop) => (
+
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {['Awa Beauty Studio', 'Royal Braids Dakar', 'Barber Lounge', 'Glam & Nails'].map((suggestion) => (
                     <button
-                      key={pop}
+                      key={suggestion}
                       type="button"
-                      onClick={() => setFormData(prev => ({ ...prev, address: pop, city: pop }))}
-                      className={`text-[11px] px-2.5 py-1 rounded-lg border transition cursor-pointer ${
-                        (formData.address === pop || formData.city === pop)
-                          ? 'bg-pink-600 border-pink-600 text-white font-bold'
-                          : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'
-                      }`}
+                      onClick={() => handleBrandNameChange(suggestion)}
+                      className="px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors cursor-pointer"
                     >
-                      {pop}
+                      {suggestion}
                     </button>
                   ))}
                 </div>
               </div>
 
-              {/* Question 4 */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-pink-600 flex items-center gap-1.5">
-                  <Sparkles size={14} /> 4. Quel est votre univers ?
-                </label>
-                <div className="space-y-2">
-                  <div className="grid grid-cols-2 gap-2">
-                    {['beauty_studio', 'barber'].map((key) => {
-                      const bt = BUSINESS_TYPES[key];
-                      const isSelected = formData.businessType === bt.id;
-                      return (
-                        <button
-                          key={bt.id}
-                          type="button"
-                          onClick={() => setFormData(prev => ({ ...prev, businessType: bt.id }))}
-                          className={`p-3 rounded-2xl border text-left flex flex-col gap-1 transition cursor-pointer ${
-                            isSelected
-                              ? 'border-pink-600 bg-pink-50 text-pink-900 font-bold shadow-xs ring-1 ring-pink-500'
-                              : 'border-gray-200 hover:border-pink-300 text-gray-700 bg-white'
-                          }`}
-                        >
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-xl">{bt.emoji}</span>
-                            <span className="text-xs font-black truncate">{bt.name}</span>
-                          </div>
-                          <span className="text-[11px] text-gray-500 line-clamp-1 font-normal">
-                            {bt.subtitle}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
+              <div className="p-4 rounded-2xl bg-emerald-50/80 border border-emerald-200 text-xs text-slate-800 space-y-1">
+                <span className="text-[11px] text-emerald-800 font-medium block">
+                  Le nom de ton salon deviendra son adresse web dédiée :
+                </span>
+                <span className="font-mono font-black text-emerald-950 text-xs sm:text-sm break-all">
+                  appointfy.com/{formData.slug || 'nom-de-ton-salon'}
+                </span>
+              </div>
 
-                  {/* Option Mixte discrète */}
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  disabled={!formData.brandName.trim()}
+                  className="w-full py-3.5 px-6 rounded-2xl bg-pink-600 hover:bg-pink-700 active:scale-98 text-white font-black text-sm sm:text-base flex items-center justify-center gap-2 shadow-md shadow-pink-200 transition-all cursor-pointer disabled:opacity-40"
+                >
+                  <span>Continuer</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ---------------- 2. ÉTAPE 2/5 : SPÉCIALITÉ / MÉTIER ---------------- */}
+          {stage === 2 && (
+            <div className="space-y-6">
+              <div className="space-y-1 text-center sm:text-left">
+                <h2 className="text-xl sm:text-2xl font-black text-slate-950 tracking-tight">
+                  C'est quoi ta spécialité, {ownerFirstName} ?
+                </h2>
+                <p className="text-xs text-slate-500">
+                  On adapte ton catalogue de prestations et tes fiches à ce que tu proposes.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+                {[
+                  { id: 'hair_braids', label: 'Coiffure & Tresses', icon: '✂️', desc: 'Braids, Nattes, Tissage' },
+                  { id: 'nails', label: 'Onglerie & Manucure', icon: '💅', desc: 'Gel X, Résine, Pédicure' },
+                  { id: 'lashes_makeup', label: 'Cils & Maquillage', icon: '👁️', desc: 'Lash, Microblading, Glam' },
+                  { id: 'barber', label: 'Barbershop Homme', icon: '💈', desc: 'Coupes, Dégradés & Barbe' },
+                  { id: 'spa_massage', label: 'Spa & Massages', icon: '💆‍♀️', desc: 'Massages & Soins détente' },
+                  { id: 'mixte', label: 'Salon Mixte / Tout-en-un', icon: '🌟', desc: 'Coiffure, Ongles & Soins' }
+                ].map((item) => (
                   <button
+                    key={item.id}
                     type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, businessType: 'mixte' }))}
-                    className={`w-full py-1.5 px-3 rounded-xl border text-center text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5 ${
-                      formData.businessType === 'mixte'
-                        ? 'border-pink-600 bg-pink-50 text-pink-900 ring-1 ring-pink-500'
-                        : 'border-gray-200 text-gray-600 bg-gray-50/50 hover:bg-gray-100'
+                    onClick={() => setFormData(prev => ({ ...prev, businessType: item.id }))}
+                    className={`p-3.5 sm:p-4 rounded-2xl border-2 text-left transition-all cursor-pointer flex flex-col justify-between ${
+                      formData.businessType === item.id
+                        ? 'border-pink-600 bg-pink-50/60 ring-2 ring-pink-500/20 shadow-xs'
+                        : 'border-slate-200 hover:border-slate-300 bg-white'
                     }`}
                   >
-                    <span>✂️ Salon Mixte (Hommes & Femmes)</span>
+                    <div>
+                      <div className="text-2xl mb-1.5">{item.icon}</div>
+                      <strong className="block text-xs sm:text-sm font-black text-slate-900 leading-snug">
+                        {item.label}
+                      </strong>
+                    </div>
+                    <span className="text-[10px] sm:text-[11px] text-slate-500 mt-1 block">
+                      {item.desc}
+                    </span>
                   </button>
-                </div>
+                ))}
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  className="w-full py-3.5 px-6 rounded-2xl bg-pink-600 hover:bg-pink-700 active:scale-98 text-white font-black text-sm sm:text-base flex items-center justify-center gap-2 shadow-md shadow-pink-200 transition-all cursor-pointer"
+                >
+                  <span>Continuer</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
               </div>
             </div>
           )}
 
-          {/* ================= ÉCRAN 3 (2 QUESTIONS : MODE D'EXERCICE & WHATSAPP) ================= */}
-          {step === 3 && (
-            <div className="space-y-5 animate-in fade-in duration-200">
-              {/* Question 5 */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-pink-600 block">
-                  5. Comment recevez-vous vos clients ?
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {WORK_MODES.map((wm) => {
-                    const isSelected = formData.workMode === wm.id;
-                    return (
-                      <button
-                        key={wm.id}
-                        type="button"
-                        onClick={() => setFormData(prev => ({ ...prev, workMode: wm.id }))}
-                        className={`py-2 px-1.5 rounded-xl border text-center text-xs font-bold transition cursor-pointer ${
-                          isSelected
-                            ? 'border-pink-600 bg-pink-50 text-pink-900 shadow-xs ring-1 ring-pink-500'
-                            : 'border-gray-200 hover:border-pink-300 text-gray-600 bg-white'
-                        }`}
-                      >
-                        {wm.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Question 6 */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-pink-600 flex items-center gap-1.5">
-                  <MessageCircle size={14} className="text-emerald-500" /> 6. Votre numéro WhatsApp professionnel
-                </label>
-                <div className="flex rounded-xl border border-gray-200 overflow-hidden focus-within:border-pink-500 focus-within:ring-2 focus-within:ring-pink-100">
-                  <div className="bg-gray-50 px-3 flex items-center border-r border-gray-200 text-gray-700 font-bold text-xs select-none">
-                    🇸🇳 +221
-                  </div>
-                  <input
-                    type="tel"
-                    value={formData.phone}
-                    onChange={(e) => setFormData(prev => ({ ...prev, phone: formatPhoneNumber(e.target.value, 'SN') }))}
-                    placeholder="77 123 45 67"
-                    className="w-full px-3.5 py-2.5 font-bold text-gray-900 text-sm focus:outline-none font-mono"
-                  />
-                </div>
-                <p className="text-[11px] text-gray-500">
-                  Sert aux confirmations et rappels automatiques envoyés à vos clientes.
+          {/* ---------------- 3. ÉTAPE 3/5 : OÙ EN ES-TU AUJOURD'HUI ? ---------------- */}
+          {stage === 3 && (
+            <div className="space-y-6">
+              <div className="space-y-1 text-center sm:text-left">
+                <h2 className="text-xl sm:text-2xl font-black text-slate-950 tracking-tight">
+                  Où en es-tu aujourd'hui ?
+                </h2>
+                <p className="text-xs text-slate-500">
+                  Sois honnête, il n'y a pas de mauvaise réponse. Ça change ce qu'on prépare pour toi.
                 </p>
               </div>
+
+              <div className="space-y-2.5">
+                {[
+                  {
+                    id: 'whatsapp',
+                    label: 'Je gère déjà mes réservations sur WhatsApp ou DM Instagram',
+                    icon: MessageCircle,
+                    color: 'text-emerald-600'
+                  },
+                  {
+                    id: 'carnet',
+                    label: 'Je note sur un carnet papier ou un agenda manuel',
+                    icon: BookOpen,
+                    color: 'text-blue-600'
+                  },
+                  {
+                    id: 'lapins',
+                    label: 'J\'ai trop de lapins et de clientes qui ne se présentent pas',
+                    icon: AlertTriangle,
+                    color: 'text-rose-600'
+                  },
+                  {
+                    id: 'domicile',
+                    label: 'Je coiffe à domicile ou je reçois chez moi',
+                    icon: Home,
+                    color: 'text-purple-600'
+                  },
+                  {
+                    id: 'start',
+                    label: 'Je démarre tout juste, je n\'ai pas encore de salon officiel',
+                    icon: Rocket,
+                    color: 'text-pink-600'
+                  }
+                ].map((choice) => {
+                  const IconComponent = choice.icon;
+                  const isSelected = formData.situation === choice.id;
+
+                  return (
+                    <button
+                      key={choice.id}
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, situation: choice.id }))}
+                      className={`w-full p-3.5 sm:p-4 rounded-2xl border-2 text-left transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                        isSelected
+                          ? 'border-pink-600 bg-pink-50/50 ring-2 ring-pink-500/20 shadow-xs'
+                          : 'border-slate-200 hover:border-slate-300 bg-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={`w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center shrink-0 ${choice.color}`}>
+                          <IconComponent className="w-4 h-4" />
+                        </div>
+                        <span className="text-xs sm:text-sm font-bold text-slate-800 leading-snug">
+                          {choice.label}
+                        </span>
+                      </div>
+                      <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
+                        isSelected ? 'border-pink-600 bg-pink-600 text-white' : 'border-slate-300'
+                      }`}>
+                        {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Boîte de réassurance dynamique */}
+              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-700 leading-relaxed font-medium">
+                {formData.situation === 'whatsapp' && '💬 Top ! Tu vas pouvoir envoyer ton lien de réservation directement dans tes discussions WhatsApp et ne plus perdre de temps à négocier les créneaux.'}
+                {formData.situation === 'carnet' && '📒 Fini les ratures et les doubles réservations ! Ton planning sera toujours à jour sur ton téléphone avec tes alertes en direct.'}
+                {formData.situation === 'lapins' && '🛡️ C\'est le cauchemar des salons. Grâce à l\'acompte obligatoire, tes clientes sont obligées d\'honorer le créneau ou tu encaisses l\'acompte !'}
+                {formData.situation === 'domicile' && '🏠 Parfait ! Tu pourras renseigner tes disponibilités et recevoir sur rendez-vous privé sans stress.'}
+                {formData.situation === 'start' && '🚀 Tout le monde commence quelque part. On va y aller une action à la fois, sans rien te demander de compliqué.'}
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  className="w-full py-3.5 px-6 rounded-2xl bg-pink-600 hover:bg-pink-700 active:scale-98 text-white font-black text-sm sm:text-base flex items-center justify-center gap-2 shadow-md shadow-pink-200 transition-all cursor-pointer"
+                >
+                  <span>Continuer</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           )}
 
-          {/* ================= ÉCRAN 4 (2 QUESTIONS : NUMÉRO WAVE & ACOMPTE) ================= */}
-          {step === 4 && (
-            <div className="space-y-5 animate-in fade-in duration-200">
-              {/* Question 7 */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-pink-600 flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-4 h-4 rounded-full bg-[#1DC4F9] text-white font-bold flex items-center justify-center text-[10px]">~</span>
-                    7. Votre numéro Wave pour recevoir vos acomptes
-                  </span>
-                  <span className="text-[10px] text-[#1DC4F9] font-bold">Wave Sénégal</span>
-                </label>
-                <div className="flex rounded-xl border border-gray-200 overflow-hidden focus-within:border-[#1DC4F9] focus-within:ring-2 focus-within:ring-[#1DC4F9]/20">
-                  <div className="bg-gray-50 px-3 flex items-center border-r border-gray-200 text-gray-700 font-bold text-xs select-none">
-                    🇸🇳 +221
-                  </div>
-                  <input
-                    type="tel"
-                    value={formData.waveNumber || formData.phone}
-                    onChange={(e) => setFormData(prev => ({ ...prev, waveNumber: formatPhoneNumber(e.target.value, 'SN') }))}
-                    placeholder={formData.phone || '77 123 45 67'}
-                    className="w-full px-3.5 py-2.5 font-bold text-gray-900 text-sm focus:outline-none font-mono"
-                  />
-                </div>
-              </div>
-
-              {/* Question 8 */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-pink-600 flex items-center gap-1.5">
-                  <ShieldCheck size={14} /> 8. Règle d'acompte anti-lapin
-                </label>
-                <div className="grid grid-cols-2 gap-2 pt-1">
-                  {DEPOSIT_OPTIONS.map((opt) => {
-                    const isSelected = formData.depositOption === opt.id;
-                    return (
-                      <button
-                        key={opt.id}
-                        type="button"
-                        onClick={() => setFormData(prev => ({ ...prev, depositOption: opt.id }))}
-                        className={`p-2 rounded-xl border text-center text-xs font-bold transition cursor-pointer ${
-                          isSelected
-                            ? 'border-pink-600 bg-pink-50 text-pink-900 ring-1 ring-pink-500'
-                            : 'border-gray-200 text-gray-600 bg-white'
-                        }`}
-                      >
-                        {opt.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ================= ÉCRAN 5 (2 QUESTIONS : ACCÈS COMPTE SÉCURISÉ) ================= */}
-          {step === 5 && !currentUser?.id && (
-            <div className="space-y-5 animate-in fade-in duration-200">
-              {/* Question 9 */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-pink-600 flex items-center gap-1.5">
-                  <Mail size={14} /> 9. Votre adresse email professionnelle
-                </label>
-                <input
-                  type="email"
-                  required
-                  value={formData.email}
-                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                  placeholder="contact@mon-salon.com"
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-pink-500 focus:ring-2 focus:ring-pink-100 font-medium text-gray-900 text-sm"
-                />
-              </div>
-
-              {/* Question 10 */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-pink-600 flex items-center gap-1.5">
-                  <Lock size={14} /> 10. Votre mot de passe secret
-                </label>
-                <input
-                  type="password"
-                  required
-                  value={formData.password}
-                  onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                  placeholder="Au moins 6 caractères"
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-pink-500 focus:ring-2 focus:ring-pink-100 font-medium text-gray-900 text-sm"
-                />
-                <p className="text-[11px] text-gray-500">
-                  Permet d'accéder à votre planning et gérer vos réservations.
+          {/* ---------------- 4. ÉTAPE 4/5 : TU ES DANS QUEL PAYS ? ---------------- */}
+          {stage === 4 && (
+            <div className="space-y-6">
+              <div className="space-y-1 text-center sm:text-left">
+                <h2 className="text-xl sm:text-2xl font-black text-slate-950 tracking-tight">
+                  Tu es dans quel pays ?
+                </h2>
+                <p className="text-xs text-slate-500">
+                  Pour brancher les moyens de paiement locaux de tes clientes.
                 </p>
               </div>
+
+              <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+                {Object.values(COUNTRIES).map((c) => {
+                  const isSelected = formData.country === c.code;
+
+                  return (
+                    <button
+                      key={c.code}
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, country: c.code }))}
+                      className={`p-3.5 sm:p-4 rounded-2xl border-2 text-left transition-all cursor-pointer flex items-center justify-between ${
+                        isSelected
+                          ? 'border-pink-600 bg-pink-50/60 ring-2 ring-pink-500/20 shadow-xs'
+                          : 'border-slate-200 hover:border-slate-300 bg-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="text-2xl">{c.flag}</span>
+                        <div>
+                          <strong className="block text-xs sm:text-sm font-black text-slate-900">
+                            {c.code}
+                          </strong>
+                          <span className="text-[11px] text-slate-500 block truncate">
+                            {c.name}
+                          </span>
+                        </div>
+                      </div>
+                      {isSelected && (
+                        <div className="w-4 h-4 rounded-full bg-pink-600 text-white flex items-center justify-center shrink-0">
+                          <Check className="w-2.5 h-2.5 stroke-[3]" />
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="space-y-2 pt-1">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                  Moyens de paiement branchés pour le {currentCountry.name} :
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {(currentCountry.paymentMethods || []).map((method) => (
+                    <span
+                      key={method.id}
+                      className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 shadow-2xs ${method.color}`}
+                    >
+                      {method.id === 'wave' && '🐧'}
+                      {method.id === 'orange' && '🟧'}
+                      {method.id === 'mtn' && '🟨'}
+                      {method.id === 'moov' && '🔶'}
+                      {method.id === 'tmoney' && '🟢'}
+                      {method.id === 'card' && '💳'}
+                      <span>{method.name}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  className="w-full py-3.5 px-6 rounded-2xl bg-pink-600 hover:bg-pink-700 active:scale-98 text-white font-black text-sm sm:text-base flex items-center justify-center gap-2 shadow-md shadow-pink-200 transition-all cursor-pointer"
+                >
+                  <span>Continuer</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           )}
 
-        </div>
+          {/* ---------------- 5. ÉTAPE 5/5 : COMPTE & ALERTES DANS L'APPLICATION ---------------- */}
+          {stage === 5 && (
+            <form onSubmit={handleFinalize} className="space-y-5">
+              <div className="space-y-1 text-center sm:text-left">
+                <h2 className="text-xl sm:text-2xl font-black text-slate-950 tracking-tight">
+                  Crée ton accès sécurisé
+                </h2>
+                <p className="text-xs text-slate-500">
+                  Pour accéder à ton tableau de bord et recevoir tes alertes en direct.
+                </p>
+              </div>
 
-        {/* ================= BOTTOM ACTION BAR ================= */}
-        <div className="px-6 py-3.5 bg-gray-50/80 border-t border-gray-100 flex items-center justify-between">
-          {step > 1 ? (
-            <button
-              type="button"
-              onClick={handlePrevStep}
-              className="text-xs font-bold text-gray-600 hover:text-gray-900 flex items-center gap-1 cursor-pointer"
-            >
-              <ArrowLeft size={14} /> Précédent
-            </button>
-          ) : (
-            <div />
+              <div className="space-y-3.5">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Prénom & Nom de la Gérante *
+                  </label>
+                  <div className="relative">
+                    <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                    <input
+                      type="text"
+                      required
+                      value={formData.ownerName}
+                      onChange={(e) => setFormData(prev => ({ ...prev, ownerName: e.target.value }))}
+                      placeholder="Ex : Awa Diop"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Téléphone professionnel ({currentCountry.name}) *
+                  </label>
+                  <div className="flex gap-2">
+                    <span className="px-3 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-bold text-slate-700 shrink-0 flex items-center">
+                      {currentCountry.flag} {currentCountry.dialCode}
+                    </span>
+                    <input
+                      type="tel"
+                      required
+                      value={formData.phone}
+                      onChange={(e) => setFormData(prev => ({ ...prev, phone: formatPhoneNumber(e.target.value, formData.country) }))}
+                      placeholder={currentCountry.phoneMask || '77 000 00 00'}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                    />
+                  </div>
+                </div>
+
+                {!currentUser?.id && (
+                  <>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Adresse e-mail de connexion *
+                      </label>
+                      <div className="relative">
+                        <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                        <input
+                          type="email"
+                          required
+                          value={formData.email}
+                          onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                          placeholder="votre-salon@gmail.com"
+                          className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Mot de passe sécurisé (6 caractères min) *
+                      </label>
+                      <div className="relative">
+                        <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                        <input
+                          type="password"
+                          required
+                          value={formData.password}
+                          onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                          placeholder="••••••••"
+                          className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* Encadré d'alerte dans l'application (spécification utilisateur) */}
+                <div className="p-3.5 rounded-2xl bg-purple-50/80 border border-purple-200 flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center shrink-0 mt-0.5">
+                    <BellRing className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <strong className="block text-xs font-bold text-purple-950">
+                      Alertes de réservation intégrées dans l'application
+                    </strong>
+                    <span className="text-[11px] text-purple-800/90 leading-relaxed block mt-0.5">
+                      Dès qu'une cliente réserve, la sonnerie de caisse retentit et une notification apparaît en direct sur votre écran.
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="w-full py-3.5 px-6 rounded-2xl bg-pink-600 hover:bg-pink-700 active:scale-98 text-white font-black text-sm sm:text-base flex items-center justify-center gap-2 shadow-lg shadow-pink-200 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  <span>{submitting ? 'Préparation de votre salon...' : 'Ouvrir mon salon en direct 🚀'}</span>
+                </button>
+              </div>
+            </form>
           )}
 
-          <button
-            type="button"
-            disabled={submitting}
-            onClick={handleNextStep}
-            className="px-5 py-2.5 bg-pink-600 hover:bg-pink-700 text-white font-bold rounded-xl text-xs shadow-md shadow-pink-500/20 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-          >
-            {submitting ? (
-              <span>Ouverture de votre Dashboard...</span>
-            ) : (step === totalSteps) ? (
-              <>Accéder à mon Dashboard <ArrowRight size={14} /></>
-            ) : (
-              <>Continuer <ArrowRight size={14} /></>
-            )}
-          </button>
         </div>
 
       </div>
