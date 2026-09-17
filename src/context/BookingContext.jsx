@@ -1002,31 +1002,50 @@ export const BookingProvider = ({ children }) => {
         }
       };
 
-      // Lors de l'onboarding, on INSERT TOUJOURS un nouveau salon pour éviter d'écraser un salon existant
+      // 1. Création atomique via RPC PostgreSQL 'onboard_new_salon'
       let savedSalon = null;
-      const { data, error } = await supabase
-        .from('salons')
-        .insert([cleanPayload])
-        .select()
-        .maybeSingle();
+      const selectedType = BUSINESS_TYPES[onboardingData.business_type || 'hair_braids'];
+      const defaultTplServices = selectedType?.defaultServices || [];
 
-      if (!error && data) {
-        savedSalon = data;
-      } else {
-        console.warn('Tentative insertion standard échouée, repli sans owner_name si colonne non reconnue:', error);
-        const fallbackPayload = { ...cleanPayload };
-        delete fallbackPayload.owner_name;
-        const { data: fbData, error: fbError } = await supabase
-          .from('salons')
-          .insert([fallbackPayload])
-          .select()
-          .single();
+      try {
+        const { data: rpcData, error: rpcError } = await supabase.rpc('onboard_new_salon', {
+          p_salon: cleanPayload,
+          p_services: defaultTplServices
+        });
 
-        if (fbError) {
-          console.error('Erreur insertion salon dans Supabase:', fbError);
-          throw new Error(`Impossible d'enregistrer votre salon : ${fbError.message}`);
+        if (!rpcError && rpcData && rpcData.id) {
+          savedSalon = rpcData;
         }
-        savedSalon = fbData;
+      } catch (rpcErr) {
+        console.warn('RPC onboard_new_salon fallback:', rpcErr);
+      }
+
+      // 2. Repli standard si la fonction RPC n'est pas encore disponible
+      if (!savedSalon) {
+        const { data, error } = await supabase
+          .from('salons')
+          .insert([cleanPayload])
+          .select()
+          .maybeSingle();
+
+        if (!error && data) {
+          savedSalon = data;
+        } else {
+          console.warn('Tentative insertion standard échouée, repli sans owner_name:', error);
+          const fallbackPayload = { ...cleanPayload };
+          delete fallbackPayload.owner_name;
+          const { data: fbData, error: fbError } = await supabase
+            .from('salons')
+            .insert([fallbackPayload])
+            .select()
+            .single();
+
+          if (fbError) {
+            console.error('Erreur insertion salon dans Supabase:', fbError);
+            throw new Error(`Impossible d'enregistrer votre salon : ${fbError.message}`);
+          }
+          savedSalon = fbData;
+        }
       }
 
       const effectiveSalon = savedSalon;
@@ -1043,8 +1062,10 @@ export const BookingProvider = ({ children }) => {
         story: null,
         owner_name: onboardingData.owner_name || effectiveSalon.owner_name || '',
         country: effectiveSalon.country || 'SN',
+        currency: effectiveSalon.currency || 'FCFA',
         business_type: effectiveSalon.business_type || 'hair_braids',
         work_mode: effectiveSalon.work_mode || 'salon',
+        booking_policy: effectiveSalon.booking_policy || 'deposit',
         wave_number: effectiveSalon.wave_number || effectiveSalon.phone,
         depositRate: effectiveSalon.deposit_rate,
         depositRequired: effectiveSalon.notification_settings?.depositRequired ?? true,
@@ -1053,34 +1074,41 @@ export const BookingProvider = ({ children }) => {
         paymentRecipientPhone: effectiveSalon.notification_settings?.paymentRecipientPhone || effectiveSalon.phone
       });
 
-      // Injection automatique des prestations réelles adaptées au métier choisi (ex: Coiffure, Onglerie, etc.)
-      const selectedType = BUSINESS_TYPES[onboardingData.business_type || 'hair_braids'];
-      const defaultTplServices = selectedType?.defaultServices || [];
+      // 3. Récupération ou injection automatique des prestations du template métier
       let initialServicesList = [];
 
-      if (effectiveSalon.id && defaultTplServices.length > 0) {
+      if (effectiveSalon.id) {
         try {
-          const servicesToInsert = defaultTplServices.map(s => ({
-            salon_id: effectiveSalon.id,
-            name: s.name,
-            duration: String(s.duration || 60),
-            price: Number(s.price || 0),
-            deposit: Math.round(Number(s.price || 0) * (onboardingData.deposit_rate ?? 0.20)),
-            category: s.category || 'Général',
-            description: s.description || '',
-            is_active: true
-          }));
-
-          const { data: insertedServices, error: srvErr } = await supabase
+          const { data: existingSrv } = await supabase
             .from('services')
-            .insert(servicesToInsert)
-            .select();
+            .select('*')
+            .eq('salon_id', effectiveSalon.id);
 
-          if (!srvErr && insertedServices) {
-            initialServicesList = insertedServices;
+          if (existingSrv && existingSrv.length > 0) {
+            initialServicesList = existingSrv;
+          } else if (defaultTplServices.length > 0) {
+            const servicesToInsert = defaultTplServices.map(s => ({
+              salon_id: effectiveSalon.id,
+              name: s.name,
+              duration: String(s.duration || 60),
+              price: Number(s.price || 0),
+              deposit: Math.round(Number(s.price || 0) * (onboardingData.deposit_rate ?? 0.20)),
+              category: s.category || 'Général',
+              description: s.description || '',
+              is_active: true
+            }));
+
+            const { data: insertedServices } = await supabase
+              .from('services')
+              .insert(servicesToInsert)
+              .select();
+
+            if (insertedServices) {
+              initialServicesList = insertedServices;
+            }
           }
         } catch (srvInsertErr) {
-          console.warn('Injection prestations template warning:', srvInsertErr);
+          console.warn('Gestion prestations template warning:', srvInsertErr);
         }
       }
 
