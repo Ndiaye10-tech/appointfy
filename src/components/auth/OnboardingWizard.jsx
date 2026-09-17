@@ -3,6 +3,7 @@ import { useBooking } from '../../context/BookingContext';
 import { supabase } from '../../lib/supabase';
 import { COUNTRIES, DEFAULT_COUNTRY, formatPhoneNumber } from '../../data/countries';
 import { BUSINESS_TYPES } from '../../data/businessTemplates';
+import { CountryFlag } from '../common/CountryFlag';
 import {
   Sparkles,
   ArrowRight,
@@ -595,14 +596,14 @@ export const OnboardingWizard = ({
                           : 'border-slate-200 hover:border-slate-300 bg-white'
                       }`}
                     >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <span className="text-2xl">{c.flag}</span>
-                        <div>
-                          <strong className="block text-xs sm:text-sm font-black text-slate-900">
-                            {c.code}
-                          </strong>
-                          <span className="text-[11px] text-slate-500 block truncate">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <CountryFlag code={c.code} className="w-9 h-6 sm:w-10 sm:h-7 rounded-md object-cover shadow-xs border border-slate-200/90 shrink-0" />
+                        <div className="min-w-0">
+                          <strong className="block text-xs sm:text-sm font-black text-slate-900 leading-snug truncate">
                             {c.name}
+                          </strong>
+                          <span className="text-[10px] sm:text-[11px] text-slate-400 font-semibold block truncate">
+                            {c.defaultCity} • {c.currency}
                           </span>
                         </div>
                       </div>
@@ -687,8 +688,9 @@ export const OnboardingWizard = ({
                     Numéro WhatsApp / Téléphone professionnel *
                   </label>
                   <div className="flex gap-2">
-                    <span className="px-3 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-bold text-slate-700 shrink-0 flex items-center">
-                      {currentCountry.flag} {currentCountry.dialCode}
+                    <span className="px-3 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-bold text-slate-700 shrink-0 flex items-center gap-2">
+                      <CountryFlag code={formData.country} className="w-5 h-3.5 rounded object-cover shadow-2xs border border-slate-200 shrink-0" />
+                      <span>{currentCountry.dialCode}</span>
                     </span>
                     <input
                       type="tel"
