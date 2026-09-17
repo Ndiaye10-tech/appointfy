@@ -104,9 +104,18 @@ export const BookingProvider = ({ children }) => {
     )
   );
 
+  // Reconnaissance du Super-Admin de la Plateforme (mahmoudndiaye100@gmail.com)
+  const isPlatformAdmin = Boolean(
+    currentUser?.email?.toLowerCase() === 'mahmoudndiaye100@gmail.com' ||
+    salon?.owner_email?.toLowerCase() === 'mahmoudndiaye100@gmail.com'
+  );
+
   // Vérification stricte de l'expiration de l'abonnement ou de l'essai 14 jours
   const isSubscriptionExpired = (() => {
     if (!salon?.id) return false;
+    // Droits Super Admin à vie : Aucune restriction d'abonnement
+    if (isPlatformAdmin) return false;
+    
     // Statut explicite 'expired'
     if (salon.subscriptionStatus === 'expired') return true;
     if (salon.isSubscriptionActive === false) return true;
@@ -1958,6 +1967,7 @@ export const BookingProvider = ({ children }) => {
         setCurrentUser,
         isSalonOwner,
         isSubscriptionExpired,
+        isPlatformAdmin,
         completeOnboarding,
         logout,
         step,
