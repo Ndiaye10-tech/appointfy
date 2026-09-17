@@ -1002,15 +1002,13 @@ export const BookingProvider = ({ children }) => {
         }
       };
 
-      // 1. Création atomique via RPC PostgreSQL 'onboard_new_salon'
+      // 1. Création atomique via RPC PostgreSQL 'onboard_new_salon' (sans AUCUNE prestation pré-remplie)
       let savedSalon = null;
-      const selectedType = BUSINESS_TYPES[onboardingData.business_type || 'hair_braids'];
-      const defaultTplServices = selectedType?.defaultServices || [];
 
       try {
         const { data: rpcData, error: rpcError } = await supabase.rpc('onboard_new_salon', {
           p_salon: cleanPayload,
-          p_services: defaultTplServices
+          p_services: [] // 100% propre : aucune prestation injectée d'office
         });
 
         if (!rpcError && rpcData && rpcData.id) {
@@ -1074,46 +1072,9 @@ export const BookingProvider = ({ children }) => {
         paymentRecipientPhone: effectiveSalon.notification_settings?.paymentRecipientPhone || effectiveSalon.phone
       });
 
-      // 3. Récupération ou injection automatique des prestations du template métier
-      let initialServicesList = [];
-
-      if (effectiveSalon.id) {
-        try {
-          const { data: existingSrv } = await supabase
-            .from('services')
-            .select('*')
-            .eq('salon_id', effectiveSalon.id);
-
-          if (existingSrv && existingSrv.length > 0) {
-            initialServicesList = existingSrv;
-          } else if (defaultTplServices.length > 0) {
-            const servicesToInsert = defaultTplServices.map(s => ({
-              salon_id: effectiveSalon.id,
-              name: s.name,
-              duration: String(s.duration || 60),
-              price: Number(s.price || 0),
-              deposit: Math.round(Number(s.price || 0) * (onboardingData.deposit_rate ?? 0.20)),
-              category: s.category || 'Général',
-              description: s.description || '',
-              is_active: true
-            }));
-
-            const { data: insertedServices } = await supabase
-              .from('services')
-              .insert(servicesToInsert)
-              .select();
-
-            if (insertedServices) {
-              initialServicesList = insertedServices;
-            }
-          }
-        } catch (srvInsertErr) {
-          console.warn('Gestion prestations template warning:', srvInsertErr);
-        }
-      }
-
-      setServices(initialServicesList);
-      localStorage.setItem('appointfy_services', JSON.stringify(initialServicesList));
+      // 3. Salon 100% vierge : aucune prestation factice ou imposée
+      setServices([]);
+      localStorage.setItem('appointfy_services', JSON.stringify([]));
 
       if (effectiveSalon.id) {
         setMySalonId(effectiveSalon.id);

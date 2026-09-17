@@ -422,7 +422,7 @@ export const OnboardingWizard = ({
                   Quelle est votre expertise principale ?
                 </h2>
                 <p className="text-xs text-slate-500">
-                  Nous préparerons automatiquement votre catalogue de prestations avec les tarifs et durées standards.
+                  Pour adapter l'ambiance et la thématique de votre vitrine à votre activité.
                 </p>
               </div>
 
