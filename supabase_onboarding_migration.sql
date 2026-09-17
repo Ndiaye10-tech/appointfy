@@ -224,31 +224,7 @@ BEGIN
     )
     RETURNING id INTO v_salon_id;
 
-    -- 2. Insertion des prestations par défaut du métier si fournies
-    IF jsonb_array_length(p_services) > 0 THEN
-        FOR v_service IN SELECT * FROM jsonb_array_elements(p_services)
-        LOOP
-            INSERT INTO public.services (
-                salon_id,
-                name,
-                category,
-                duration,
-                price,
-                deposit,
-                description,
-                is_active
-            ) VALUES (
-                v_salon_id,
-                COALESCE(v_service->>'name', 'Prestation'),
-                COALESCE(v_service->>'category', 'Général'),
-                COALESCE(v_service->>'duration', '60'),
-                COALESCE((v_service->>'price')::INT, 10000),
-                ROUND(COALESCE((v_service->>'price')::INT, 10000) * COALESCE((p_salon->>'deposit_rate')::NUMERIC, 0.20)),
-                COALESCE(v_service->>'description', ''),
-                true
-            );
-        END LOOP;
-    END IF;
+    -- 2. Zéro prestation pré-remplie : le catalogue de la gérante reste 100% vierge et propre
 
     -- 3. Récupération des données du salon créé
     SELECT * INTO v_created_salon FROM public.salons WHERE id = v_salon_id;
