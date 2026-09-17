@@ -19,7 +19,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ success: false, error: 'Référence requise' });
     }
 
-    const response = await fetch(`https://api.geniuspay.ci/v1/payments/${encodeURIComponent(reference)}`, {
+    const response = await fetch(`https://geniuspay.ci/api/v1/merchant/payments/${encodeURIComponent(reference)}`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
