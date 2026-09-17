@@ -20,10 +20,14 @@ import { ClientPreviewEditor } from './components/salon/ClientPreviewEditor';
 import { SettingsManager } from './components/salon/SettingsManager';
 import { SubscriptionPaywall } from './components/salon/SubscriptionPaywall';
 import { SuperAdminDashboard } from './components/admin/SuperAdminDashboard';
-import { Menu, Eye, MapPin, Clock, Phone, ShieldCheck, Sparkles, LogOut, UserCheck, AlertTriangle } from 'lucide-react';
+import { usePWA } from './hooks/usePWA';
+import { useNotifications } from './context/NotificationContext';
+import { Menu, Eye, MapPin, Clock, Phone, ShieldCheck, Sparkles, LogOut, UserCheck, AlertTriangle, Download, Bell, BellRing, Check } from 'lucide-react';
 
 const AppContent = () => {
   const { currentView, setCurrentView, authMode, step, appointments, salon, currentUser, logout, isSubscriptionExpired, isPlatformAdmin } = useBooking();
+  const { isInstallable, isInstalled, isIOS, installApp } = usePWA();
+  const { pushPermission, requestPush } = useNotifications();
   const [salonTab, setSalonTab] = useState('dashboard'); // 'dashboard' | 'planning' | 'crm' | 'pos' | 'stats' | 'showcase' | 'settings'
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
@@ -125,22 +129,63 @@ const AppContent = () => {
                 </div>
 
                 {/* Droite : Bouton Voir mon site en direct + Nom du salon */}
-                <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                {/* Droite : Boutons d'Action Pro (Installer App + Notifications) */}
+                <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+                  
+                  {/* Bouton 1 : Télécharger / Installer l'Application (PWA) */}
                   <button
                     type="button"
-                    onClick={() => {
-                      const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173';
-                      window.open(`${origin}/?salon=${salon?.slug || 'mon-salon'}`, '_blank');
-                    }}
-                    className="px-3.5 py-2 rounded-xl bg-pink-50 hover:bg-pink-100 text-pink-700 font-bold text-xs flex items-center gap-1.5 border border-pink-200 transition-all cursor-pointer shadow-2xs"
+                    onClick={installApp}
+                    className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs border ${
+                      isInstalled
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : 'bg-gradient-to-r from-pink-600 to-rose-600 text-white hover:from-pink-700 hover:to-rose-700 border-transparent shadow-pink-200 hover:scale-[1.02]'
+                    }`}
+                    title={isInstalled ? "Application installée sur votre appareil" : "Installer Appointfy comme une application mobile"}
                   >
-                    <Eye className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Voir ma vitrine ↗</span>
-                    <span className="sm:hidden">Vitrine</span>
+                    {isInstalled ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-600" />
+                        <span className="hidden sm:inline">App Installée</span>
+                        <span className="sm:hidden">Installée</span>
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-3.5 h-3.5 animate-bounce" />
+                        <span className="hidden sm:inline">Installer l'App</span>
+                        <span className="sm:hidden">Installer</span>
+                      </>
+                    )}
                   </button>
 
-                  <div className="hidden sm:flex items-center gap-2 pl-2 border-l border-slate-200 text-xs">
-                    <span className="font-bold text-slate-700 truncate max-w-[160px]">{salon.name}</span>
+                  {/* Bouton 2 : Activer les Notifications et Alertes Sonores */}
+                  <button
+                    type="button"
+                    onClick={requestPush}
+                    className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs border ${
+                      pushPermission === 'granted'
+                        ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
+                        : 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-300 animate-pulse'
+                    }`}
+                    title={pushPermission === 'granted' ? "Notifications push actives" : "Activer les alertes sonores et push de réservation"}
+                  >
+                    {pushPermission === 'granted' ? (
+                      <>
+                        <BellRing className="w-3.5 h-3.5 text-emerald-600" />
+                        <span className="hidden md:inline">Alertes Actives</span>
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                      </>
+                    ) : (
+                      <>
+                        <Bell className="w-3.5 h-3.5 text-amber-600" />
+                        <span className="hidden sm:inline">Activer Notifications</span>
+                        <span className="sm:hidden">Alertes</span>
+                      </>
+                    )}
+                  </button>
+
+                  <div className="hidden lg:flex items-center gap-2 pl-2 border-l border-slate-200 text-xs">
+                    <span className="font-bold text-slate-700 truncate max-w-[140px]">{salon.name}</span>
                   </div>
                 </div>
               </header>
