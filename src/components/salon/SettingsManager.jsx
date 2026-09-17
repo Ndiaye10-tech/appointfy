@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useBooking, formatFCFA } from '../../context/BookingContext';
+import { useNotifications } from '../../context/NotificationContext';
 import { SubscriptionManager } from './SubscriptionManager';
 import { supabase } from '../../lib/supabase';
 import {
@@ -18,11 +19,37 @@ import {
   Calendar,
   Lock,
   LogOut,
-  RefreshCw
+  RefreshCw,
+  Bell,
+  BellRing,
+  Volume2,
+  VolumeX,
+  Play,
+  Music
 } from 'lucide-react';
 
 export const SettingsManager = ({ defaultSection }) => {
   const { salon, currentUser, logout, updateSalon, isSubscriptionExpired } = useBooking();
+  const {
+    soundEnabled,
+    setSoundEnabled,
+    soundVolume,
+    setSoundVolume,
+    soundPreset,
+    setSoundPreset,
+    pushPermission,
+    requestPush,
+    triggerTestAlert
+  } = useNotifications();
+
+  const [testingSound, setTestingSound] = useState(false);
+
+  const handleTestSound = () => {
+    setTestingSound(true);
+    triggerTestAlert();
+    setTimeout(() => setTestingSound(false), 1200);
+  };
+
 
   // Expanded section state: 'subscription' if expired or requested, else 'general'
   const [openSection, setOpenSection] = useState(defaultSection || (isSubscriptionExpired ? 'subscription' : 'general'));
@@ -559,7 +586,7 @@ export const SettingsManager = ({ defaultSection }) => {
           )}
         </div>
 
-        {/* 3. WHATSAPP & NOTIFICATIONS */}
+        {/* 3. ALERTES SONORES, PUSH & WHATSAPP */}
         <div>
           <button
             type="button"
@@ -567,15 +594,15 @@ export const SettingsManager = ({ defaultSection }) => {
             className="w-full p-4 sm:p-5 flex items-center justify-between text-left hover:bg-slate-50/60 transition-colors cursor-pointer"
           >
             <div className="flex items-center gap-3.5 min-w-0">
-              <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-                <MessageCircle className="w-5 h-5" />
+              <div className="w-10 h-10 rounded-2xl bg-pink-50 text-pink-600 flex items-center justify-center shrink-0">
+                <BellRing className="w-5 h-5" />
               </div>
               <div className="min-w-0">
                 <span className="font-bold text-sm text-slate-900 block truncate">
-                  WhatsApp & Rappels Automatiques
+                  Alertes Sonores, Push & WhatsApp
                 </span>
                 <span className="text-xs text-slate-500 block truncate mt-0.5">
-                  {formData.whatsappReminderEnabled ? 'Confirmation & rappel 24h actifs' : 'Confirmation active'}
+                  Sonnerie {soundEnabled ? `active (${soundPreset})` : 'coupée'} • {pushPermission === 'granted' ? 'Push actif' : 'Push disponible'} • WhatsApp
                 </span>
               </div>
             </div>
@@ -587,82 +614,219 @@ export const SettingsManager = ({ defaultSection }) => {
           </button>
 
           {openSection === 'notifications' && (
-            <form onSubmit={handleSave} className="p-4 sm:p-6 bg-slate-50/40 border-t border-slate-100 space-y-4 animate-in fade-in duration-150">
-              <div className="space-y-3">
-                <div className="p-3.5 rounded-2xl bg-white border border-slate-200 flex items-center justify-between gap-3">
-                  <div>
-                    <strong className="block text-xs font-bold text-slate-900">
-                      Confirmation de RDV immédiate
-                    </strong>
-                    <span className="text-[11px] text-slate-500">
-                      Générer le récapitulatif dès que l'acompte Wave est payé.
-                    </span>
+            <div className="p-4 sm:p-6 bg-slate-50/40 border-t border-slate-100 space-y-6 animate-in fade-in duration-150">
+              
+              {/* ================= SOUS-SECTION 1 : ALERTES SONORES CAISSE & COMPTOIR ================= */}
+              <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-4">
+                <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                      <Volume2 className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <strong className="block text-xs font-bold text-slate-900">
+                        Sonnerie de Nouvelle Réservation
+                      </strong>
+                      <span className="text-[11px] text-slate-500">
+                        Fait sonner la tablette ou l'ordinateur du salon à chaque nouvelle réservation Wave.
+                      </span>
+                    </div>
                   </div>
+
                   <label className="relative inline-flex items-center cursor-pointer shrink-0">
                     <input
                       type="checkbox"
-                      checked={formData.whatsappConfirmEnabled}
-                      onChange={(e) => handleChange('whatsappConfirmEnabled', e.target.checked)}
+                      checked={soundEnabled}
+                      onChange={(e) => setSoundEnabled(e.target.checked)}
                       className="sr-only peer"
                     />
-                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-pink-600"></div>
                   </label>
                 </div>
 
-                <div className="p-3.5 rounded-2xl bg-white border border-slate-200 flex items-center justify-between gap-3">
-                  <div>
-                    <strong className="block text-xs font-bold text-slate-900">
-                      Rappel Anti-Lapin 24h avant
-                    </strong>
-                    <span className="text-[11px] text-slate-500">
-                      Rappeler le rendez-vous à la cliente la veille par WhatsApp.
-                    </span>
+                {soundEnabled && (
+                  <div className="space-y-4 pt-1 animate-in fade-in duration-150">
+                    {/* Choix de la Sonnerie */}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-2">
+                        Tonalité de la sonnerie :
+                      </label>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        {[
+                          { id: 'cash', label: 'Caisse Enregistreuse', icon: '💰', desc: 'Ka-Ching argenté' },
+                          { id: 'chime', label: 'Carillon Zen', icon: '🔔', desc: 'Harmonique chic' },
+                          { id: 'bell', label: 'Cloche Accueil', icon: '🛎️', desc: 'Double tintement' },
+                          { id: 'minimal', label: 'Bip Moderne', icon: '🎵', desc: 'Alerte rapide' }
+                        ].map((preset) => (
+                          <button
+                            key={preset.id}
+                            type="button"
+                            onClick={() => setSoundPreset(preset.id)}
+                            className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                              soundPreset === preset.id
+                                ? 'border-pink-600 bg-pink-50/70 text-pink-950 ring-2 ring-pink-500/20 shadow-xs'
+                                : 'border-slate-200 bg-white hover:border-slate-300 text-slate-700'
+                            }`}
+                          >
+                            <div className="text-base mb-1">{preset.icon}</div>
+                            <strong className="block text-xs font-bold truncate">{preset.label}</strong>
+                            <span className="text-[10px] text-slate-500 block truncate">{preset.desc}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Curseur de Volume */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between text-xs font-bold">
+                        <span className="text-slate-700 flex items-center gap-1.5">
+                          {soundVolume === 0 ? <VolumeX className="w-3.5 h-3.5 text-slate-400" /> : <Volume2 className="w-3.5 h-3.5 text-pink-600" />}
+                          Volume sonore :
+                        </span>
+                        <span className="text-pink-600">{Math.round(soundVolume * 100)}%</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0.1"
+                        max="1.0"
+                        step="0.05"
+                        value={soundVolume}
+                        onChange={(e) => setSoundVolume(Number(e.target.value))}
+                        className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-pink-600"
+                      />
+                    </div>
+
+                    {/* Bouton de Test Sonore Immédiat */}
+                    <div className="pt-2">
+                      <button
+                        type="button"
+                        onClick={handleTestSound}
+                        disabled={testingSound}
+                        className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-pink-50 hover:bg-pink-100 text-pink-700 border border-pink-200 font-bold text-xs inline-flex items-center justify-center gap-2 transition-all cursor-pointer shadow-2xs active:scale-98"
+                      >
+                        <Play className={`w-3.5 h-3.5 fill-pink-600 ${testingSound ? 'animate-ping' : ''}`} />
+                        <span>{testingSound ? 'Lecture en cours...' : '🔊 Tester la sonnerie maintenant'}</span>
+                      </button>
+                    </div>
                   </div>
-                  <label className="relative inline-flex items-center cursor-pointer shrink-0">
-                    <input
-                      type="checkbox"
-                      checked={formData.whatsappReminderEnabled}
-                      onChange={(e) => handleChange('whatsappReminderEnabled', e.target.checked)}
-                      className="sr-only peer"
+                )}
+              </div>
+
+              {/* ================= SOUS-SECTION 2 : NOTIFICATIONS PUSH NAVIGATEUR ================= */}
+              <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+                      <Bell className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <strong className="block text-xs font-bold text-slate-900">
+                        Notifications Push (Écran & Téléphone)
+                      </strong>
+                      <span className="text-[11px] text-slate-500">
+                        Recevez des alertes pop-up même si le site est en arrière-plan ou l'écran verrouillé.
+                      </span>
+                    </div>
+                  </div>
+
+                  {pushPermission === 'granted' ? (
+                    <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-bold border border-emerald-200 shrink-0">
+                      ✓ Actives
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={requestPush}
+                      className="px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold shrink-0 transition-all shadow-xs cursor-pointer"
+                    >
+                      Activer le Push
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* ================= SOUS-SECTION 3 : WHATSAPP & CONFIRMATIONS ================= */}
+              <form onSubmit={handleSave} className="space-y-4">
+                <div className="space-y-3">
+                  <div className="p-3.5 rounded-2xl bg-white border border-slate-200 flex items-center justify-between gap-3">
+                    <div>
+                      <strong className="block text-xs font-bold text-slate-900">
+                        Confirmation de RDV immédiate
+                      </strong>
+                      <span className="text-[11px] text-slate-500">
+                        Générer le récapitulatif dès que l'acompte Wave est validé.
+                      </span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                      <input
+                        type="checkbox"
+                        checked={formData.whatsappConfirmEnabled}
+                        onChange={(e) => handleChange('whatsappConfirmEnabled', e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                    </label>
+                  </div>
+
+                  <div className="p-3.5 rounded-2xl bg-white border border-slate-200 flex items-center justify-between gap-3">
+                    <div>
+                      <strong className="block text-xs font-bold text-slate-900">
+                        Rappel Anti-Lapin 24h avant
+                      </strong>
+                      <span className="text-[11px] text-slate-500">
+                        Rappeler le rendez-vous à la cliente la veille par WhatsApp.
+                      </span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                      <input
+                        type="checkbox"
+                        checked={formData.whatsappReminderEnabled}
+                        onChange={(e) => handleChange('whatsappReminderEnabled', e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                    </label>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Modèle du message WhatsApp
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={formData.whatsappTemplate}
+                      onChange={(e) => handleChange('whatsappTemplate', e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-pink-500"
                     />
-                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
-                  </label>
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      Variables dynamiques : {'{nom_cliente}'}, {'{prestation}'}, {'{nom_salon}'}, {'{date}'}, {'{heure}'}
+                    </p>
+                  </div>
+
+                  {/* Aperçu WhatsApp */}
+                  <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200 text-xs text-slate-800 space-y-1">
+                    <span className="text-[10px] font-bold text-emerald-800 block">
+                      Aperçu sur le téléphone de la cliente :
+                    </span>
+                    <p className="text-[11px] text-slate-700 whitespace-pre-line leading-relaxed font-sans">
+                      {getSimulatedWhatsAppMessage()}
+                    </p>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Modèle du message WhatsApp
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={formData.whatsappTemplate}
-                    onChange={(e) => handleChange('whatsappTemplate', e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-pink-500"
-                  />
+                <div className="pt-2 flex justify-end">
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-black text-white font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-50"
+                  >
+                    {saving ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                    <span>Enregistrer les réglages</span>
+                  </button>
                 </div>
+              </form>
 
-                {/* Aperçu WhatsApp minimaliste */}
-                <div className="p-3 rounded-xl bg-emerald-50/70 border border-emerald-200 text-xs text-slate-800 space-y-1">
-                  <span className="text-[10px] font-bold text-emerald-800 block">
-                    Aperçu sur le téléphone de la cliente :
-                  </span>
-                  <p className="text-[11px] text-slate-700 whitespace-pre-line leading-relaxed">
-                    {getSimulatedWhatsAppMessage()}
-                  </p>
-                </div>
-              </div>
-
-              <div className="pt-2 flex justify-end">
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-black text-white font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-50"
-                >
-                  {saving ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                  <span>Enregistrer les messages</span>
-                </button>
-              </div>
-            </form>
+            </div>
           )}
         </div>
 

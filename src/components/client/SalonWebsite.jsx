@@ -525,7 +525,7 @@ export const SalonWebsite = () => {
 
         {/* ================= SECTION C: GALERIE PHOTOS / LOOKBOOK ================= */}
         {hasLookbook && (
-          <section id="galerie" className="scroll-mt-24 space-y-6">
+          <section id="lookbook" className="scroll-mt-24 space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b border-stone-200/80 pb-4">
               <div>
                 <span className={`text-xs font-bold uppercase tracking-wider ${theme.primaryText} block`}>
@@ -572,11 +572,114 @@ export const SalonWebsite = () => {
           </section>
         )}
 
+        {/* ================= SECTION D: NOTRE ÉQUIPE DANS LA VITRINE ================= */}
+        {salon.team && salon.team.length > 0 && (
+          <section id="equipe" className="scroll-mt-24 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b border-stone-200/80 pb-4">
+              <div>
+                <span className={`text-xs font-bold uppercase tracking-wider ${theme.primaryText} block`}>
+                  Nos Professionnelles & Praticiennes
+                </span>
+                <h2 className="text-xl sm:text-2xl font-black text-stone-950 tracking-tight flex items-center gap-2">
+                  <span>✂️ L'Équipe du Salon</span>
+                  <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-stone-100 text-stone-700 border border-stone-200/80">
+                    {salon.team.length} talent{salon.team.length > 1 ? 's' : ''}
+                  </span>
+                </h2>
+              </div>
+              <p className="text-xs text-stone-600 max-w-md">
+                Prenez rendez-vous directement avec votre collaboratrice de confiance ou la première disponible.
+              </p>
+            </div>
 
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+              {salon.team.map((member, idx) => {
+                const memberAvatar = member.avatar || member.image;
+                const firstName = member.name ? member.name.split(' ')[0] : 'elle';
 
+                return (
+                  <div
+                    key={member.id || idx}
+                    className="bg-white rounded-3xl p-5 sm:p-6 border border-stone-200/80 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between group"
+                  >
+                    <div>
+                      <div className="flex items-center gap-4">
+                        <div className="relative shrink-0">
+                          {memberAvatar ? (
+                            <img
+                              src={memberAvatar}
+                              alt={member.name}
+                              className="w-16 h-16 rounded-2xl object-cover border border-stone-100 shadow-xs group-hover:scale-105 transition-transform duration-200"
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                                if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
+                              }}
+                            />
+                          ) : null}
+                          <div
+                            style={{ display: memberAvatar ? 'none' : 'flex' }}
+                            className={`w-16 h-16 rounded-2xl ${theme.bgLight} ${theme.primaryText} items-center justify-center font-black text-xl border border-stone-200 shadow-2xs`}
+                          >
+                            {member.name ? member.name.charAt(0).toUpperCase() : 'P'}
+                          </div>
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-black text-stone-900 text-base sm:text-lg truncate">
+                            {member.name}
+                          </h3>
+                          <span className={`inline-block text-[11px] font-bold px-2.5 py-0.5 rounded-full ${theme.badgeFilled} border ${theme.borderLight} mt-1`}>
+                            {member.role || 'Praticienne'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {Array.isArray(member.specialties) && member.specialties.length > 0 && (
+                        <div className="mt-4 pt-3 border-t border-stone-100">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block mb-1.5">
+                            Spécialités :
+                          </span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {member.specialties.map((spec, sIdx) => (
+                              <span
+                                key={sIdx}
+                                className="px-2.5 py-1 rounded-lg bg-stone-50 border border-stone-200/70 text-stone-700 text-[11px] font-medium"
+                              >
+                                {spec}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="mt-5 pt-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          selectPractitioner(member);
+                          if (selectedService) {
+                            setStep(isTeamMode ? 3 : 2);
+                          } else {
+                            setStep(1);
+                          }
+                          scrollToSection('prestations');
+                        }}
+                        className={`w-full py-2.5 px-4 rounded-xl ${theme.buttonBg} text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 hover:opacity-90 active:scale-98 transition-all cursor-pointer shadow-xs`}
+                      >
+                        <span>Prendre RDV avec {firstName}</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         {/* ================= SECTION E: HORAIRES DÉTAILLÉS & CONTACT ================= */}
-        <section id="contact" className="scroll-mt-24 bg-white rounded-3xl p-6 sm:p-10 border border-stone-200/80 shadow-xs space-y-6">
+        <section id="infos" className="scroll-mt-24 bg-white rounded-3xl p-6 sm:p-10 border border-stone-200/80 shadow-xs space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-100 pb-4">
             <div className="max-w-xl">
               <span className="text-xs font-bold uppercase tracking-wider text-stone-600 block">

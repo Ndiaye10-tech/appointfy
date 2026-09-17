@@ -129,9 +129,9 @@ export const PractitionerSelector = () => {
 
               <div className="flex items-center gap-3">
                 <div className="relative shrink-0">
-                  {member.image ? (
+                  {(member.avatar || member.image) ? (
                     <img
-                      src={member.image}
+                      src={member.avatar || member.image}
                       alt={member.name}
                       className="w-12 h-12 rounded-xl object-cover border border-stone-100 shadow-2xs"
                       onError={(e) => {
@@ -141,10 +141,10 @@ export const PractitionerSelector = () => {
                     />
                   ) : null}
                   <div
-                    style={{ display: member.image ? 'none' : 'flex' }}
+                    style={{ display: (member.avatar || member.image) ? 'none' : 'flex' }}
                     className={`w-12 h-12 rounded-xl ${theme.bgLight} ${theme.primaryText} items-center justify-center font-bold text-base border border-stone-200`}
                   >
-                    {member.name.charAt(0).toUpperCase()}
+                    {member.name ? member.name.charAt(0).toUpperCase() : 'P'}
                   </div>
                 </div>
 
@@ -153,7 +153,9 @@ export const PractitionerSelector = () => {
                     {member.name}
                   </h4>
                   <p className="text-xs text-stone-500 mt-0.5 line-clamp-1">
-                    {member.description || `Experte chez ${salon?.name || 'le salon'}`}
+                    {Array.isArray(member.specialties) && member.specialties.length > 0
+                      ? member.specialties.slice(0, 2).join(' • ')
+                      : (member.role || `Spécialiste chez ${salon?.name || 'le salon'}`)}
                   </p>
                 </div>
               </div>

@@ -179,16 +179,73 @@ export const playPunchyAlert = (volume = 1.0) => {
 };
 
 /**
+ * SONNERIE 4 : "Tiroir-Caisse Enregistreuse Ka-Ching"
+ * Bruit mécanique d'ouverture suivi du tintement brillant de pièces dorées.
+ */
+export const playCashRegister = (volume = 1.0) => {
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+
+    const { input } = createLoudMasterChain(ctx, volume);
+    const now = ctx.currentTime;
+
+    // 1. "Ka" : Bruit mécanique sec du tiroir
+    const snapOsc = ctx.createOscillator();
+    const snapGain = ctx.createGain();
+    snapOsc.type = 'triangle';
+    snapOsc.frequency.setValueAtTime(320, now);
+    snapOsc.frequency.exponentialRampToValueAtTime(80, now + 0.05);
+
+    snapGain.gain.setValueAtTime(0.7, now);
+    snapGain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+
+    snapOsc.connect(snapGain);
+    snapGain.connect(input);
+    snapOsc.start(now);
+    snapOsc.stop(now + 0.06);
+
+    // 2. "Ching" : Cloche argentée éclatante et carillon de pièces (2489Hz + 3135Hz + 4186Hz)
+    const chingTime = now + 0.05;
+    const freqs = [2489, 3135.9, 4186]; // D#7, G7, C8
+
+    freqs.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = idx === 0 ? 'triangle' : 'sine';
+      osc.frequency.setValueAtTime(freq, chingTime);
+
+      gain.gain.setValueAtTime(0.001, chingTime);
+      gain.gain.linearRampToValueAtTime(1.0 / (idx + 1), chingTime + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.0001, chingTime + 0.95);
+
+      osc.connect(gain);
+      gain.connect(input);
+
+      osc.start(chingTime);
+      osc.stop(chingTime + 0.95);
+    });
+
+  } catch (err) {
+    console.warn('Erreur lecture son Ka-Ching caisse:', err);
+  }
+};
+
+/**
  * Joue la sonnerie selon le preset sélectionné
  */
 export const playSoundPreset = (preset = 'chime', volume = 1.0) => {
   getAudioContext();
 
-  if (preset === 'dingdong') {
+  if (preset === 'cash') {
+    playCashRegister(volume);
+  } else if (preset === 'dingdong' || preset === 'bell') {
     playDingDong(volume);
-  } else if (preset === 'alert') {
+  } else if (preset === 'alert' || preset === 'minimal') {
     playPunchyAlert(volume);
   } else {
     playLoudChime(volume);
   }
 };
+
