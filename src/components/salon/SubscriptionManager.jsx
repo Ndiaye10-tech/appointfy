@@ -114,6 +114,17 @@ export const SubscriptionManager = () => {
   const daysLeft = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
   const isExpired = diffTime <= 0;
 
+  // Détection du compte Super Admin / Fondateur (Mahmoud Ndiaye)
+  const isPlatformAdmin = Boolean(
+    salon?.phone?.includes('784722951') ||
+    salon?.phone?.includes('78 472 29 51') ||
+    salon?.wave_number?.includes('784722951') ||
+    salon?.wave_number?.includes('78 472 29 51') ||
+    salon?.owner_email === 'mahmoudndiaye100@gmail.com' ||
+    salon?.slug?.includes('mamadou-ndiaye') ||
+    daysLeft > 3650
+  );
+
   // Cleanup polling on unmount
   useEffect(() => {
     return () => {
@@ -124,15 +135,20 @@ export const SubscriptionManager = () => {
   // Fetch subscription payments history from Supabase
   useEffect(() => {
     const fetchHistory = async () => {
-      if (!isSupabaseConfigured || !salon?.id) return;
+      if (!isSupabaseConfigured) return;
       setLoadingHistory(true);
       try {
-        const { data, error } = await supabase
+        let query = supabase
           .from('subscription_payments')
           .select('*')
-          .eq('salon_id', salon.id)
           .order('created_at', { ascending: false });
 
+        // Si ce n'est pas l'admin, filtrer uniquement les paiements de son propre salon
+        if (!isPlatformAdmin && salon?.id) {
+          query = query.eq('salon_id', salon.id);
+        }
+
+        const { data, error } = await query;
         if (!error && data) {
           setPayments(data);
         }
@@ -144,7 +160,8 @@ export const SubscriptionManager = () => {
     };
 
     fetchHistory();
-  }, [salon?.id]);
+  }, [salon?.id, isPlatformAdmin]);
+
 
   // Handle successful subscription payment
   const handlePaymentSuccess = async (reference, methodUsed) => {
@@ -298,31 +315,48 @@ export const SubscriptionManager = () => {
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2 max-w-xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-xs font-black uppercase tracking-wider">
-              <Gift className="w-3.5 h-3.5" />
-              {status === 'trial' ? 'Offre Essai 14 Jours Gratuit' : 'Abonnement Professionnel'}
+              {isPlatformAdmin ? (
+                <>
+                  <span>👑</span>
+                  <span>Compte Fondateur & Administrateur Plateforme</span>
+                </>
+              ) : (
+                <>
+                  <Gift className="w-3.5 h-3.5" />
+                  <span>{status === 'trial' ? 'Offre Essai 14 Jours Gratuit' : 'Abonnement Professionnel'}</span>
+                </>
+              )}
             </div>
             <h2 className="text-2xl sm:text-3xl font-black tracking-tight">
-              Abonnement Salon Appointfy
+              {isPlatformAdmin ? 'Espace Administrateur Appointfy' : 'Abonnement Salon Appointfy'}
             </h2>
             <p className="text-white/90 text-sm leading-relaxed">
-              Profitez d'un outil complet pour encaisser vos acomptes clients, automatiser votre planning et éliminer les rendez-vous non honorés.
+              {isPlatformAdmin
+                ? 'Compte officiel du fondateur (Mahmoud Ndiaye). Vous bénéficiez d\'un accès illimité à vie sans aucun abonnement à payer. Tous les abonnements des salons partenaires (9 900 F/mois) sont versés directement sur votre compte Wave (78 472 29 51).'
+                : 'Profitez d\'un outil complet pour encaisser vos acomptes clients, automatiser votre planning et éliminer les rendez-vous non honorés.'}
             </p>
           </div>
 
           <div className="bg-white/10 backdrop-blur-md p-5 rounded-2xl border border-white/20 text-center shrink-0 min-w-[220px]">
-            <span className="text-xs font-bold text-white/80 uppercase tracking-wider block">Tarif mensuel</span>
-            <div className="text-3xl font-black mt-1">
-              {formatFCFA(subscriptionPrice)}
+            <span className="text-xs font-bold text-white/80 uppercase tracking-wider block">
+              {isPlatformAdmin ? 'Statut du Compte' : 'Tarif mensuel'}
+            </span>
+            <div className="text-2xl sm:text-3xl font-black mt-1">
+              {isPlatformAdmin ? 'Accès à Vie' : formatFCFA(subscriptionPrice)}
             </div>
-            <span className="text-xs text-white/80">/ mois sans engagement</span>
+            <span className="text-xs text-white/80">
+              {isPlatformAdmin ? 'Fondateur Appointfy (0 FCFA)' : '/ mois sans engagement'}
+            </span>
             
-            <button
-              onClick={() => setIsPaying(true)}
-              className="mt-4 w-full py-3 px-4 bg-white text-pink-600 hover:bg-pink-50 font-black text-xs rounded-xl shadow-lg transition-all cursor-pointer flex items-center justify-center gap-1.5"
-            >
-              <Zap className="w-4 h-4 fill-pink-600" />
-              <span>{isExpired ? 'Réactiver mon abonnement' : 'Prolonger mon abonnement'}</span>
-            </button>
+            {!isPlatformAdmin && (
+              <button
+                onClick={() => setIsPaying(true)}
+                className="mt-4 w-full py-3 px-4 bg-white text-pink-600 hover:bg-pink-50 font-black text-xs rounded-xl shadow-lg transition-all cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <Zap className="w-4 h-4 fill-pink-600" />
+                <span>{isExpired ? 'Réactiver mon abonnement' : 'Prolonger mon abonnement'}</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -333,7 +367,11 @@ export const SubscriptionManager = () => {
         <div className="bg-white p-6 rounded-3xl border border-pink-100 shadow-xs space-y-4">
           <div className="flex items-center justify-between">
             <span className="text-xs font-extrabold uppercase tracking-wider text-slate-500">Statut de votre compte</span>
-            {status === 'trial' ? (
+            {isPlatformAdmin ? (
+              <span className="px-2.5 py-1 rounded-full text-xs font-black bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-1">
+                👑 Super Admin
+              </span>
+            ) : status === 'trial' ? (
               <span className="px-2.5 py-1 rounded-full text-xs font-black bg-amber-100 text-amber-800 flex items-center gap-1">
                 <Clock className="w-3.5 h-3.5" />
                 Essai Gratuit
@@ -352,29 +390,48 @@ export const SubscriptionManager = () => {
           </div>
 
           <div className="pt-2">
-            <div className="text-4xl font-black text-slate-900 flex items-baseline gap-1">
-              {daysLeft}
-              <span className="text-base font-bold text-slate-500">jours restants</span>
-            </div>
-            <p className="text-xs text-slate-500 mt-1">
-              {isExpired ? (
-                <span className="text-rose-600 font-bold">Votre période est expirée. Renouvelez pour continuer à recevoir des réservations.</span>
-              ) : (
-                <>Valable jusqu'au <strong className="text-slate-700">{expiresAtDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</strong></>
-              )}
-            </p>
+            {isPlatformAdmin ? (
+              <div className="space-y-1">
+                <div className="text-3xl font-black text-slate-900">
+                  Accès Permanent
+                </div>
+                <p className="text-xs text-emerald-700 font-bold">
+                  Compte Fondateur Illimité • Zéro facturation
+                </p>
+                <p className="text-[11px] text-slate-500 pt-1">
+                  Bénéficiaire des encaissements SaaS : Wave <strong>78 472 29 51</strong>
+                </p>
+              </div>
+            ) : (
+              <div>
+                <div className="text-4xl font-black text-slate-900 flex items-baseline gap-1">
+                  {daysLeft}
+                  <span className="text-base font-bold text-slate-500">jours restants</span>
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  {isExpired ? (
+                    <span className="text-rose-600 font-bold">Votre période est expirée. Renouvelez pour continuer à recevoir des réservations.</span>
+                  ) : (
+                    <>Valable jusqu'au <strong className="text-slate-700">{expiresAtDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</strong></>
+                  )}
+                </p>
+              </div>
+            )}
           </div>
 
-          <div className="pt-2 border-t border-slate-100">
-            <button
-              onClick={() => setIsPaying(true)}
-              className="w-full py-2.5 px-4 rounded-xl bg-pink-600 hover:bg-pink-700 text-white text-xs font-extrabold transition-all shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
-            >
-              <CreditCard className="w-3.5 h-3.5" />
-              <span>Payer mon abonnement (9 900 F)</span>
-            </button>
-          </div>
+          {!isPlatformAdmin && (
+            <div className="pt-2 border-t border-slate-100">
+              <button
+                onClick={() => setIsPaying(true)}
+                className="w-full py-2.5 px-4 rounded-xl bg-pink-600 hover:bg-pink-700 text-white text-xs font-extrabold transition-all shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <CreditCard className="w-3.5 h-3.5" />
+                <span>Payer mon abonnement (9 900 F)</span>
+              </button>
+            </div>
+          )}
         </div>
+
 
         {/* What's included */}
         <div className="md:col-span-2 bg-white p-6 rounded-3xl border border-pink-100 shadow-xs space-y-4">
@@ -664,10 +721,19 @@ export const SubscriptionManager = () => {
 
       {/* History of subscription payments */}
       <div className="bg-white p-6 rounded-3xl border border-pink-100 shadow-xs space-y-4">
-        <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-pink-600" />
-          Historique de vos paiements d'abonnement
-        </h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-pink-600" />
+            {isPlatformAdmin
+              ? '👑 Abonnements perçus sur la plateforme (Tous les salons)'
+              : 'Historique de vos paiements d\'abonnement'}
+          </h3>
+          {isPlatformAdmin && payments.length > 0 && (
+            <span className="text-xs font-extrabold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+              Total encaissé : {formatFCFA(payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0))}
+            </span>
+          )}
+        </div>
 
         {loadingHistory ? (
           <div className="py-6 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
@@ -677,8 +743,16 @@ export const SubscriptionManager = () => {
         ) : payments.length === 0 ? (
           <div className="py-8 text-center text-xs text-slate-400 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
             <Clock className="w-6 h-6 mx-auto mb-2 text-slate-300" />
-            <p className="font-semibold">Aucun paiement d'abonnement pour le moment.</p>
-            <p className="text-[11px] text-slate-400 mt-0.5">Votre période d'essai de 14 jours est actuellement en cours.</p>
+            <p className="font-semibold">
+              {isPlatformAdmin
+                ? 'Aucun abonnement encaissé pour l\'instant.'
+                : 'Aucun paiement d\'abonnement pour le moment.'}
+            </p>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              {isPlatformAdmin
+                ? 'Dès qu\'un salon règle son abonnement mensuel de 9 900 FCFA, il apparaîtra ici.'
+                : 'Votre période d\'essai de 14 jours est actuellement en cours.'}
+            </p>
           </div>
         ) : (
           <div className="divide-y divide-slate-100">
@@ -686,7 +760,7 @@ export const SubscriptionManager = () => {
               <div key={p.id} className="py-3 flex items-center justify-between text-xs">
                 <div className="space-y-0.5">
                   <div className="font-extrabold text-slate-800 flex items-center gap-2">
-                    <span>Abonnement 30 jours</span>
+                    <span>{isPlatformAdmin ? (p.salon_name || 'Salon partenaire') : 'Abonnement 30 jours'}</span>
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800">
                       {p.status === 'completed' ? 'Payé' : p.status}
                     </span>
@@ -701,7 +775,7 @@ export const SubscriptionManager = () => {
                 </div>
 
                 <div className="text-right">
-                  <span className="font-black text-slate-900 block">{formatFCFA(p.amount)}</span>
+                  <span className="font-black text-emerald-700 block">+{formatFCFA(p.amount)}</span>
                   <span className="text-[10px] text-slate-400">Reçu conforme</span>
                 </div>
               </div>
@@ -709,6 +783,7 @@ export const SubscriptionManager = () => {
           </div>
         )}
       </div>
+
 
       {/* Support Salons Inscrits - Abonnement */}
       <div className="p-4 sm:p-5 rounded-2xl bg-emerald-50/70 border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
