@@ -1,0 +1,4 @@
+import React from 'react';
+import { useBooking, formatFCFA } from '../../context/BookingContext';
+import { getTheme } from '../../lib/theme';
+import { Users, ChevronLeft, ArrowRight, Check, Sparkles, Award } from 'lucide-react';

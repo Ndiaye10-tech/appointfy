@@ -1,0 +1,25 @@
+{
+  "name": "Appointfy — Salon & Planning Pro",
+  "short_name": "Appointfy",
+  "description": "Application de gestion de salon de beauté, planning en direct et acomptes mobiles Wave.",
+  "start_url": "/",
+  "id": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fdfafc",
+  "theme_color": "#db2777",
+  "categories": ["business", "beauty", "productivity"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}

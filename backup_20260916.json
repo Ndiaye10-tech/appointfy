@@ -1,0 +1,336 @@
+{
+  "timestamp": "2026-09-16T15:38:42.669Z",
+  "salons": [
+    {
+      "id": "dea9d2d5-4c90-4bd9-8155-b58230abbb8e",
+      "name": "Mamadou Ndiaye",
+      "slug": "mamadou-ndiaye-368",
+      "tagline": null,
+      "description": "Salon géré par MAHMOUD. Réservation sécurisée avec acompte Wave.",
+      "address": null,
+      "city": "Mbao, Sénégal",
+      "phone": "+221 775184311",
+      "whatsapp": "221775184311",
+      "rating": 4.9,
+      "reviews_count": 168,
+      "deposit_rate": 0.2,
+      "hours": null,
+      "cover_image": null,
+      "avatar_image": null,
+      "created_at": "2026-09-15T23:08:02.125875+00:00",
+      "owner_id": "367457b8-f1c6-47f4-b7ae-a69472d8db86",
+      "owner_email": null,
+      "owner_name": null,
+      "theme": "pink",
+      "gallery": [],
+      "welcome_message": null,
+      "announcement_banner": null,
+      "instagram": null,
+      "tiktok": null,
+      "policy_cancellation": "Annulation remboursée à 100% jusqu'à 24h avant le rendez-vous.",
+      "schedule": null,
+      "slot_interval": 30,
+      "facebook": null,
+      "trial_ends_at": "2026-09-29T23:08:02.125875+00:00",
+      "subscription_status": "trial",
+      "subscription_price": 12000,
+      "last_subscription_payment": null,
+      "subscription_ref": null,
+      "amenities": [],
+      "reviews": [],
+      "faq": [],
+      "hero_media_type": "photo",
+      "hero_video_url": null,
+      "hero_carousel": [],
+      "story": null,
+      "team": [],
+      "lookbook": [],
+      "notification_settings": {
+        "push_enabled": true,
+        "sound_preset": "chime",
+        "sound_volume": 1,
+        "sound_enabled": true
+      },
+      "trial_started_at": "2026-09-15T23:08:02.125875+00:00",
+      "subscription_expires_at": "2026-10-15T23:08:02.125875+00:00",
+      "is_subscription_active": true,
+      "last_subscription_payment_at": null,
+      "last_subscription_ref": null
+    },
+    {
+      "id": "d2152013-28fd-4495-8100-5fd62b858179",
+      "name": "Mamadou Ndiaye",
+      "slug": "be-faah-beauty-738",
+      "tagline": "Salon de coiffure afro & soins capillaires haut de gamme",
+      "description": "Salon géré par MAHMOUD. Réservation sécurisée avec acompte Wave.",
+      "address": "Route des Almadies, en face Brioche Dorée, Dakar",
+      "city": "Dakar, Sénégal",
+      "phone": "+221 775184311",
+      "whatsapp": "221775184311",
+      "rating": 4.9,
+      "reviews_count": 168,
+      "deposit_rate": 0.2,
+      "hours": "Ouvert 7j/7",
+      "cover_image": "https://res.cloudinary.com/lpskbgpz/image/upload/v1789277613/dbbrpbp2amp7wonopfdh.jpg",
+      "avatar_image": "https://res.cloudinary.com/lpskbgpz/image/upload/v1789277591/owo0q0szykfkogmczshv.jpg",
+      "created_at": "2026-09-13T04:20:46.425108+00:00",
+      "owner_id": "9b249d29-e7dd-4d21-902e-a664d1353e53",
+      "owner_email": null,
+      "owner_name": null,
+      "theme": "violet",
+      "gallery": [
+        "https://res.cloudinary.com/lpskbgpz/image/upload/v1789279441/aqfe734osywscijwgdxe.jpg",
+        "https://res.cloudinary.com/lpskbgpz/image/upload/v1789326664/qam6w5yr9fbhsbx8narm.jpg"
+      ],
+      "welcome_message": "✨ Salon certifié AntiLapin : Réservez votre place en 30s. Votre créneau est garanti à 100% dès validation de votre acompte Wave / Orange Money.",
+      "announcement_banner": "🎉 Bienvenue sur notre page de réservation en ligne ! ",
+      "instagram": "",
+      "tiktok": "",
+      "policy_cancellation": "Annulation remboursée à 100% jusqu'à 24h avant le rendez-vous.",
+      "schedule": {
+        "jeudi": {
+          "end": "19:00",
+          "open": true,
+          "label": "Jeudi",
+          "start": "09:00"
+        },
+        "lundi": {
+          "end": "19:00",
+          "open": true,
+          "label": "Lundi",
+          "start": "09:00"
+        },
+        "mardi": {
+          "end": "19:00",
+          "open": true,
+          "label": "Mardi",
+          "start": "09:00"
+        },
+        "samedi": {
+          "end": "19:00",
+          "open": true,
+          "label": "Samedi",
+          "start": "09:00"
+        },
+        "dimanche": {
+          "end": "19:00",
+          "open": true,
+          "label": "Dimanche",
+          "start": "09:00"
+        },
+        "mercredi": {
+          "end": "19:00",
+          "open": true,
+          "label": "Mercredi",
+          "start": "09:00"
+        },
+        "vendredi": {
+          "end": "19:00",
+          "open": true,
+          "label": "Vendredi",
+          "start": "09:00"
+        }
+      },
+      "slot_interval": 45,
+      "facebook": "",
+      "trial_ends_at": "2026-10-13T16:36:29.131354+00:00",
+      "subscription_status": "trial",
+      "subscription_price": 12000,
+      "last_subscription_payment": null,
+      "subscription_ref": null,
+      "amenities": [
+        {
+          "id": "clim",
+          "icon": "Wind",
+          "label": "Climatisation fraîche",
+          "active": false
+        },
+        {
+          "id": "wifi",
+          "icon": "Wifi",
+          "label": "Wi-Fi Haut Débit offert",
+          "active": false
+        },
+        {
+          "id": "coffee",
+          "icon": "Coffee",
+          "label": "Café & Thé chaud offert",
+          "active": false
+        },
+        {
+          "id": "products",
+          "icon": "Sparkles",
+          "label": "Produits Pro haut de gamme",
+          "active": false
+        },
+        {
+          "id": "parking",
+          "icon": "Car",
+          "label": "Parking facile & sécurisé",
+          "active": false
+        },
+        {
+          "id": "no_wait",
+          "icon": "Clock",
+          "label": "Fauteuil réservé sans attente",
+          "active": false
+        }
+      ],
+      "reviews": [],
+      "faq": [
+        {
+          "id": "faq3",
+          "answer": "Pour le solde restant à régler sur place, nous acceptons les espèces, les transferts Wave ainsi qu'Orange Money.",
+          "question": "Quels sont les modes de règlement acceptés pour le solde au salon ?"
+        },
+        {
+          "id": "faq4",
+          "answer": "Pour la majorité de nos prestations knotless et tissages, les mèches standards sont fournies ou proposées au salon. Pour des mèches particulières, vous pouvez les apporter ou nous le préciser en note de réservation.",
+          "question": "Dois-je apporter mes propres mèches ou accessoires ?"
+        },
+        {
+          "id": "faq5",
+          "answer": "Notre salon est facilement accessible et dispose d'un stationnement sécurisé devant l'entrée. Vous recevez l'adresse exacte et le lien Google Maps dès votre réservation validée.",
+          "question": "Où se situe exactement le salon et y a-t-il un parking ?"
+        }
+      ],
+      "hero_media_type": "photo",
+      "hero_video_url": "",
+      "hero_carousel": [],
+      "story": {
+        "quote": "",
+        "title": "Sublimer Votre Beauté Naturelle Avec Passion",
+        "content": "Tout a commencé en 2021 avec une petite chaise, un miroir et une grande envie de créer un endroit où chaque cliente se sentirait belle et à l’aise.\nAujourd’hui, notre équipe vous accueille dans un espace pensé pour prendre soin de vous, avec passion et attention.",
+        "subtitle": "Plus qu’un salon, une histoire à partager.",
+        "founderName": "Be Faah BEAUTY",
+        "founderRole": "Directrice",
+        "founderImage": "https://res.cloudinary.com/lpskbgpz/image/upload/v1789325984/wdchirtylzdcikinxin8.jpg"
+      },
+      "team": [],
+      "lookbook": [],
+      "notification_settings": {
+        "push_enabled": true,
+        "sound_preset": "chime",
+        "sound_volume": 1,
+        "sound_enabled": true
+      },
+      "trial_started_at": "2026-09-13T21:58:01.464223+00:00",
+      "subscription_expires_at": "2026-10-13T21:58:01.464223+00:00",
+      "is_subscription_active": true,
+      "last_subscription_payment_at": null,
+      "last_subscription_ref": null
+    }
+  ],
+  "services": [
+    {
+      "id": "bac4a260-6697-4468-a899-4717d60da4a3",
+      "salon_id": "d2152013-28fd-4495-8100-5fd62b858179",
+      "name": "tresse",
+      "category": "Tresses",
+      "duration": "2h00",
+      "price": 15000,
+      "deposit": 0,
+      "popular": false,
+      "description": "",
+      "created_at": "2026-09-13T18:09:27.193086+00:00",
+      "image_url": "https://res.cloudinary.com/lpskbgpz/image/upload/v1789322951/l2bngvsijrxqo16o7vpx.jpg",
+      "badge": null
+    },
+    {
+      "id": "1ebec5fa-7fe6-4eed-93ef-621f1f340564",
+      "salon_id": "d2152013-28fd-4495-8100-5fd62b858179",
+      "name": "meches",
+      "category": "Tresses",
+      "duration": "2h00",
+      "price": 15000,
+      "deposit": 0,
+      "popular": false,
+      "description": "",
+      "created_at": "2026-09-13T20:47:22.035433+00:00",
+      "image_url": "https://res.cloudinary.com/lpskbgpz/image/upload/v1789332469/kctfhybwq6y6chiduj2n.jpg",
+      "badge": null
+    },
+    {
+      "id": "6c3c3b9f-ab19-4a9f-ab97-44751a96fd3a",
+      "salon_id": "d2152013-28fd-4495-8100-5fd62b858179",
+      "name": "retzyu",
+      "category": "Onglerie",
+      "duration": "2h00",
+      "price": 15000,
+      "deposit": 3000,
+      "popular": false,
+      "description": "",
+      "created_at": "2026-09-15T03:19:02.329417+00:00",
+      "image_url": "https://res.cloudinary.com/lpskbgpz/image/upload/v1789442335/vamo7ptksizrg5ipku1h.jpg",
+      "badge": null
+    }
+  ],
+  "appointments": [
+    {
+      "id": "AL-6053",
+      "salon_id": "d2152013-28fd-4495-8100-5fd62b858179",
+      "client_name": "Mamadou",
+      "client_phone": "784722951",
+      "service_id": "bac4a260-6697-4468-a899-4717d60da4a3",
+      "service_name": "tresse",
+      "date": "2026-09-15",
+      "time_slot": "09:45",
+      "price": 15000,
+      "deposit_paid": 0,
+      "remaining_balance": 15000,
+      "payment_method": "Sur place (Sans acompte)",
+      "transaction_ref": "DIR-6541701",
+      "status": "no_show",
+      "notes": "",
+      "created_at": "2026-09-13T20:08:53.517647+00:00",
+      "date_formatted": "Mardi (15 Sept.)",
+      "client_email": null,
+      "geniuspay_reference": "DIR-6541701",
+      "payment_status": "completed",
+      "practitioner_name": null,
+      "is_blocked": false,
+      "duration": "1h"
+    },
+    {
+      "id": "AL-3413",
+      "salon_id": "d2152013-28fd-4495-8100-5fd62b858179",
+      "client_name": "Mamadou",
+      "client_phone": "784722951",
+      "service_id": "1ebec5fa-7fe6-4eed-93ef-621f1f340564",
+      "service_name": "meches",
+      "date": "2026-09-15",
+      "time_slot": "09:00",
+      "price": 15000,
+      "deposit_paid": 0,
+      "remaining_balance": 15000,
+      "payment_method": "Sur place (Sans acompte)",
+      "transaction_ref": "DIR-8835315",
+      "status": "confirmed",
+      "notes": "",
+      "created_at": "2026-09-15T03:17:45.602321+00:00",
+      "date_formatted": "Aujourd'hui (15 Sept.)",
+      "client_email": null,
+      "geniuspay_reference": "DIR-8835315",
+      "payment_status": "completed",
+      "practitioner_name": null,
+      "is_blocked": false,
+      "duration": "1h"
+    }
+  ],
+  "notifications": [
+    {
+      "id": "notif-1789442263810-a9nm",
+      "salon_id": "d2152013-28fd-4495-8100-5fd62b858179",
+      "type": "booking",
+      "title": "🚨 Nouvelle réservation : Mamadou",
+      "message": "meches • 2026-09-15 à 09:00 (Acompte: 0 FCFA)",
+      "appointment_id": "AL-3413",
+      "client_name": "Mamadou",
+      "service_name": "meches",
+      "time_slot": "09:00",
+      "deposit_paid": 0,
+      "is_read": false,
+      "created_at": "2026-09-15T03:17:43.81+00:00"
+    }
+  ]
+}
