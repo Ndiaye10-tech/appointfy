@@ -21,12 +21,13 @@ import {
   User,
   AlertCircle,
   X,
-  MessageCircle,
-  BookOpen,
-  AlertTriangle,
   Home,
-  Rocket,
-  CreditCard
+  Building2,
+  Repeat,
+  ShieldAlert,
+  CalendarCheck,
+  Clock,
+  Globe
 } from 'lucide-react';
 
 export const OnboardingWizard = ({
@@ -40,17 +41,18 @@ export const OnboardingWizard = ({
 
   const { currentUser, setCurrentUser, completeOnboarding } = useBooking();
 
-  // stage: 0 = Accueil / Hook, 1 = Nom du salon, 2 = Spécialité, 3 = Situation, 4 = Pays, 5 = Compte & Alertes
+  // stage: 0 = Accueil, 1 = Nom & Mode d'exercice, 2 = Spécialité, 3 = Protection créneaux (Acompte), 4 = Localisation, 5 = Compte & Alertes
   const [stage, setStage] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Form State
+  // État du formulaire
   const [formData, setFormData] = useState({
     brandName: initialData.brandName || '',
     slug: '',
+    workMode: initialData.workMode || 'salon', // 'salon' | 'home' | 'both'
     businessType: initialData.businessType || 'hair_braids',
-    situation: 'whatsapp', // 'whatsapp', 'carnet', 'lapins', 'domicile', 'start'
+    bookingPolicy: 'deposit', // 'deposit' (Acompte Mobile Money) | 'instant' (Sans acompte) | 'manual' (Validation manuelle)
     country: initialData.country || DEFAULT_COUNTRY,
     ownerName: initialData.ownerName || '',
     phone: initialData.phone || '',
@@ -82,12 +84,12 @@ export const OnboardingWizard = ({
 
     if (stage === 1) {
       if (!formData.brandName.trim()) {
-        setErrorMsg('Veuillez donner un nom à votre salon ou activité.');
+        setErrorMsg('Veuillez renseigner le nom de votre salon ou espace beauté.');
         return;
       }
     } else if (stage === 4) {
       if (!formData.country) {
-        setErrorMsg('Veuillez sélectionner votre pays.');
+        setErrorMsg('Veuillez sélectionner le pays où vous êtes basée.');
         return;
       }
     }
@@ -159,8 +161,9 @@ export const OnboardingWizard = ({
         }
       }
 
-      // 2. Finalisation et enregistrement du salon avec template métier
+      // 2. Finalisation du salon
       const cleanPhone = formData.phone.trim() ? `${currentCountry.dialCode} ${formData.phone.trim()}` : '';
+      const isDepositRequired = formData.bookingPolicy === 'deposit';
 
       const finalizedData = {
         owner_id: currentUserId,
@@ -171,13 +174,13 @@ export const OnboardingWizard = ({
         city: currentCountry.defaultCity || 'Dakar',
         address: currentCountry.defaultCity || 'Dakar',
         business_type: formData.businessType,
-        work_mode: 'salon',
+        work_mode: formData.workMode || 'salon',
         phone: cleanPhone,
         whatsapp: cleanPhone,
         wave_number: cleanPhone,
-        deposit_rate: 0.20,
+        deposit_rate: isDepositRequired ? 0.20 : 0,
         deposit_type: 'rate',
-        deposit_required: true
+        deposit_required: isDepositRequired
       };
 
       if (onComplete) {
@@ -188,14 +191,11 @@ export const OnboardingWizard = ({
 
     } catch (err) {
       console.error('Erreur inscription onboarding:', err);
-      setErrorMsg(err.message || 'Une erreur est survenue lors de la création de votre salon.');
+      setErrorMsg(err.message || 'Une erreur est survenue lors de la configuration de votre salon.');
     } finally {
       setSubmitting(false);
     }
   };
-
-  // Nom d'usage pour la personnalisation
-  const ownerFirstName = formData.ownerName.trim() ? formData.ownerName.trim().split(' ')[0] : (formData.brandName ? formData.brandName.split(' ')[0] : 'chère gérante');
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
@@ -228,7 +228,7 @@ export const OnboardingWizard = ({
                   <button
                     type="button"
                     onClick={onClose}
-                    className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                    className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -257,7 +257,7 @@ export const OnboardingWizard = ({
         {/* ================= CONTENU PAR ÉTAPE ================= */}
         <div className="p-6 sm:p-8">
 
-          {/* ---------------- 0. ÉCRAN D'ACCUEIL / HOOK ---------------- */}
+          {/* ---------------- 0. ÉCRAN D'ACCUEIL : ACCROCHE PRO APPOINTFY ---------------- */}
           {stage === 0 && (
             <div className="text-center space-y-6 py-2">
               <div className="flex justify-center">
@@ -266,39 +266,55 @@ export const OnboardingWizard = ({
                 </span>
               </div>
 
-              <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-pink-50 text-pink-700 text-xs font-black border border-pink-200 shadow-2xs">
-                <span>⏱️ 60 secondes chrono</span>
-              </div>
-
               <div className="space-y-2 max-w-md mx-auto">
                 <h1 className="text-2xl sm:text-3xl font-black text-slate-950 tracking-tight leading-tight">
-                  Réponds à 5 questions.<br />
-                  Ton salon sera <span className="text-pink-600">prêt</span>.
+                  Donnez une adresse officielle à votre salon.
                 </h1>
                 <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                  Pas de blabla, pas de formulaire compliqué. Tu réponds, on prépare ton site de réservation pendant ce temps. Gratuit.
+                  Votre vitrine en ligne, vos créneaux protégés contre les désistements et vos alertes de réservation en direct.
                 </p>
               </div>
 
-              {/* Preuve sociale */}
-              <div className="flex items-center justify-center gap-2.5 pt-1">
-                <div className="flex -space-x-2 overflow-hidden">
-                  <div className="w-7 h-7 rounded-full bg-pink-600 text-white font-bold text-[10px] flex items-center justify-center border-2 border-white">AD</div>
-                  <div className="w-7 h-7 rounded-full bg-purple-600 text-white font-bold text-[10px] flex items-center justify-center border-2 border-white">FD</div>
-                  <div className="w-7 h-7 rounded-full bg-amber-500 text-white font-bold text-[10px] flex items-center justify-center border-2 border-white">MD</div>
+              {/* 3 piliers métier concrets */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-left pt-1">
+                <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                  <div className="w-7 h-7 rounded-xl bg-pink-100 text-pink-700 flex items-center justify-center mb-2">
+                    <Globe className="w-3.5 h-3.5" />
+                  </div>
+                  <strong className="block text-xs font-bold text-slate-900">Lien unique</strong>
+                  <span className="text-[11px] text-slate-500 leading-tight block mt-0.5">
+                    À mettre dans votre bio Instagram & WhatsApp.
+                  </span>
                 </div>
-                <span className="text-xs font-semibold text-slate-600">
-                  <strong className="text-slate-900">+150 salons</strong> reçoivent déjà leurs réservations
-                </span>
+
+                <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                  <div className="w-7 h-7 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center mb-2">
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                  </div>
+                  <strong className="block text-xs font-bold text-slate-900">Anti-Lapin</strong>
+                  <span className="text-[11px] text-slate-500 leading-tight block mt-0.5">
+                    Acompte Mobile Money pour sécuriser chaque créneau.
+                  </span>
+                </div>
+
+                <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                  <div className="w-7 h-7 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center mb-2">
+                    <BellRing className="w-3.5 h-3.5" />
+                  </div>
+                  <strong className="block text-xs font-bold text-slate-900">Alerte directe</strong>
+                  <span className="text-[11px] text-slate-500 leading-tight block mt-0.5">
+                    Sonnette de caisse et notification sur votre écran.
+                  </span>
+                </div>
               </div>
 
-              <div className="pt-4 space-y-3 max-w-sm mx-auto">
+              <div className="pt-2 space-y-3 max-w-sm mx-auto">
                 <button
                   type="button"
                   onClick={() => setStage(1)}
                   className="w-full py-3.5 px-6 rounded-2xl bg-pink-600 hover:bg-pink-700 active:scale-98 text-white font-black text-sm sm:text-base flex items-center justify-center gap-2 shadow-lg shadow-pink-200 transition-all cursor-pointer"
                 >
-                  <span>C'est parti</span>
+                  <span>Configurer mon salon en 2 min</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
 
@@ -315,15 +331,15 @@ export const OnboardingWizard = ({
             </div>
           )}
 
-          {/* ---------------- 1. ÉTAPE 1/5 : NOM DU SALON ---------------- */}
+          {/* ---------------- 1. ÉTAPE 1/5 : NOM DU SALON & MODE DE TRAVAIL ---------------- */}
           {stage === 1 && (
             <div className="space-y-6">
               <div className="space-y-1 text-center sm:text-left">
                 <h2 className="text-xl sm:text-2xl font-black text-slate-950 tracking-tight">
-                  Comment s'appelle ton salon ?
+                  Quel nom vos clientes verront-elles ?
                 </h2>
                 <p className="text-xs text-slate-500">
-                  C'est le nom que tes clientes verront. Tu pourras le changer plus tard.
+                  Ce nom apparaîtra sur votre page de réservation et sur vos reçus officiels.
                 </p>
               </div>
 
@@ -333,31 +349,55 @@ export const OnboardingWizard = ({
                   autoFocus
                   value={formData.brandName}
                   onChange={(e) => handleBrandNameChange(e.target.value)}
-                  placeholder="Ex : Awa Beauty Studio"
+                  placeholder="Ex : Awa Beauty Studio, Royal Braids..."
                   className="w-full px-4 py-3.5 rounded-2xl border-2 border-slate-200 focus:border-pink-600 focus:outline-none text-base sm:text-lg font-bold text-slate-900 placeholder:text-slate-400 transition-all"
                 />
 
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {['Awa Beauty Studio', 'Royal Braids Dakar', 'Barber Lounge', 'Glam & Nails'].map((suggestion) => (
-                    <button
-                      key={suggestion}
-                      type="button"
-                      onClick={() => handleBrandNameChange(suggestion)}
-                      className="px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors cursor-pointer"
-                    >
-                      {suggestion}
-                    </button>
-                  ))}
+                <div className="p-3.5 rounded-2xl bg-emerald-50/80 border border-emerald-200 text-xs text-slate-800 mt-3 flex items-center gap-2.5">
+                  <Globe className="w-4 h-4 text-emerald-700 shrink-0" />
+                  <div className="min-w-0">
+                    <span className="text-[10px] uppercase font-bold text-emerald-700 tracking-wider block">
+                      Votre lien public personnalisé :
+                    </span>
+                    <span className="font-mono font-black text-emerald-950 text-xs sm:text-sm truncate block">
+                      appointfy.com/{formData.slug || 'nom-de-votre-salon'}
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              <div className="p-4 rounded-2xl bg-emerald-50/80 border border-emerald-200 text-xs text-slate-800 space-y-1">
-                <span className="text-[11px] text-emerald-800 font-medium block">
-                  Le nom de ton salon deviendra son adresse web dédiée :
-                </span>
-                <span className="font-mono font-black text-emerald-950 text-xs sm:text-sm break-all">
-                  appointfy.com/{formData.slug || 'nom-de-ton-salon'}
-                </span>
+              {/* Mode d'exercice : en institut ou domicile */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-slate-700">
+                  Comment recevez-vous vos clientes ?
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: 'salon', label: 'En salon privé', icon: Building2, desc: 'Adresse fixe' },
+                    { id: 'home', label: 'À domicile', icon: Home, desc: 'Déplacement' },
+                    { id: 'both', label: 'Les deux', icon: Repeat, desc: 'Mixte' }
+                  ].map((mode) => {
+                    const ModeIcon = mode.icon;
+                    const isSelected = formData.workMode === mode.id;
+
+                    return (
+                      <button
+                        key={mode.id}
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, workMode: mode.id }))}
+                        className={`p-3 rounded-2xl border-2 text-center transition-all cursor-pointer flex flex-col items-center justify-center ${
+                          isSelected
+                            ? 'border-pink-600 bg-pink-50/70 ring-2 ring-pink-500/20 text-pink-950 font-bold'
+                            : 'border-slate-200 hover:border-slate-300 bg-white text-slate-600'
+                        }`}
+                      >
+                        <ModeIcon className={`w-4 h-4 mb-1 ${isSelected ? 'text-pink-600' : 'text-slate-400'}`} />
+                        <span className="text-xs font-black block leading-tight">{mode.label}</span>
+                        <span className="text-[10px] text-slate-400 block mt-0.5">{mode.desc}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               <div className="pt-2">
@@ -374,26 +414,26 @@ export const OnboardingWizard = ({
             </div>
           )}
 
-          {/* ---------------- 2. ÉTAPE 2/5 : SPÉCIALITÉ / MÉTIER ---------------- */}
+          {/* ---------------- 2. ÉTAPE 2/5 : SPÉCIALITÉ MÉTIER & MENU DE SOINS ---------------- */}
           {stage === 2 && (
             <div className="space-y-6">
               <div className="space-y-1 text-center sm:text-left">
                 <h2 className="text-xl sm:text-2xl font-black text-slate-950 tracking-tight">
-                  C'est quoi ta spécialité, {ownerFirstName} ?
+                  Quelle est votre expertise principale ?
                 </h2>
                 <p className="text-xs text-slate-500">
-                  On adapte ton catalogue de prestations et tes fiches à ce que tu proposes.
+                  Nous préparerons automatiquement votre catalogue de prestations avec les tarifs et durées standards.
                 </p>
               </div>
 
               <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
                 {[
-                  { id: 'hair_braids', label: 'Coiffure & Tresses', icon: '✂️', desc: 'Braids, Nattes, Tissage' },
+                  { id: 'hair_braids', label: 'Coiffure & Tresses', icon: '✂️', desc: 'Knotless, Nattes, Tissage' },
                   { id: 'nails', label: 'Onglerie & Manucure', icon: '💅', desc: 'Gel X, Résine, Pédicure' },
-                  { id: 'lashes_makeup', label: 'Cils & Maquillage', icon: '👁️', desc: 'Lash, Microblading, Glam' },
+                  { id: 'lashes_makeup', label: 'Cils & Makeup', icon: '👁️', desc: 'Volume Russe, Henna, Soirée' },
                   { id: 'barber', label: 'Barbershop Homme', icon: '💈', desc: 'Coupes, Dégradés & Barbe' },
-                  { id: 'spa_massage', label: 'Spa & Massages', icon: '💆‍♀️', desc: 'Massages & Soins détente' },
-                  { id: 'mixte', label: 'Salon Mixte / Tout-en-un', icon: '🌟', desc: 'Coiffure, Ongles & Soins' }
+                  { id: 'spa_massage', label: 'Spa & Massages', icon: '💆‍♀️', desc: 'Massages relaxants, Soins' },
+                  { id: 'mixte', label: 'Institut Tout-en-un', icon: '🌟', desc: 'Coiffure, Ongles & Esthétique' }
                 ].map((item) => (
                   <button
                     key={item.id}
@@ -431,90 +471,88 @@ export const OnboardingWizard = ({
             </div>
           )}
 
-          {/* ---------------- 3. ÉTAPE 3/5 : OÙ EN ES-TU AUJOURD'HUI ? ---------------- */}
+          {/* ---------------- 3. ÉTAPE 3/5 : RÈGLE DE RÉSERVATION & ACOMPTE ANTI-LAPIN ---------------- */}
           {stage === 3 && (
             <div className="space-y-6">
               <div className="space-y-1 text-center sm:text-left">
                 <h2 className="text-xl sm:text-2xl font-black text-slate-950 tracking-tight">
-                  Où en es-tu aujourd'hui ?
+                  Comment souhaitez-vous sécuriser vos rendez-vous ?
                 </h2>
                 <p className="text-xs text-slate-500">
-                  Sois honnête, il n'y a pas de mauvaise réponse. Ça change ce qu'on prépare pour toi.
+                  Choisissez la règle de réservation qui protège le mieux votre temps de travail.
                 </p>
               </div>
 
-              <div className="space-y-2.5">
+              <div className="space-y-3">
                 {[
                   {
-                    id: 'whatsapp',
-                    label: 'Je gère déjà mes réservations sur WhatsApp ou DM Instagram',
-                    icon: MessageCircle,
-                    color: 'text-emerald-600'
+                    id: 'deposit',
+                    title: 'Acompte Mobile Money (Recommandé anti-lapin)',
+                    desc: 'La cliente verse un acompte de 20% par Wave ou Orange Money pour bloquer son créneau. Fini les rendez-vous non honorés.',
+                    badge: 'Fortement recommandé',
+                    icon: ShieldCheck,
+                    badgeColor: 'bg-emerald-100 text-emerald-800'
                   },
                   {
-                    id: 'carnet',
-                    label: 'Je note sur un carnet papier ou un agenda manuel',
-                    icon: BookOpen,
-                    color: 'text-blue-600'
+                    id: 'instant',
+                    title: 'Réservation directe sans acompte',
+                    desc: 'Vos clientes choisissent leur heure et bloquent leur rendez-vous en 2 clics sans paiement préalable.',
+                    icon: CalendarCheck
                   },
                   {
-                    id: 'lapins',
-                    label: 'J\'ai trop de lapins et de clientes qui ne se présentent pas',
-                    icon: AlertTriangle,
-                    color: 'text-rose-600'
-                  },
-                  {
-                    id: 'domicile',
-                    label: 'Je coiffe à domicile ou je reçois chez moi',
-                    icon: Home,
-                    color: 'text-purple-600'
-                  },
-                  {
-                    id: 'start',
-                    label: 'Je démarre tout juste, je n\'ai pas encore de salon officiel',
-                    icon: Rocket,
-                    color: 'text-pink-600'
+                    id: 'manual',
+                    title: 'Validation préalable sur demande',
+                    desc: 'La cliente sollicite un horaire et vous confirmez manuellement chaque demande avant qu\'elle soit validée.',
+                    icon: Clock
                   }
-                ].map((choice) => {
-                  const IconComponent = choice.icon;
-                  const isSelected = formData.situation === choice.id;
+                ].map((rule) => {
+                  const RuleIcon = rule.icon;
+                  const isSelected = formData.bookingPolicy === rule.id;
 
                   return (
                     <button
-                      key={choice.id}
+                      key={rule.id}
                       type="button"
-                      onClick={() => setFormData(prev => ({ ...prev, situation: choice.id }))}
-                      className={`w-full p-3.5 sm:p-4 rounded-2xl border-2 text-left transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                      onClick={() => setFormData(prev => ({ ...prev, bookingPolicy: rule.id }))}
+                      className={`w-full p-4 rounded-2xl border-2 text-left transition-all cursor-pointer relative ${
                         isSelected
                           ? 'border-pink-600 bg-pink-50/50 ring-2 ring-pink-500/20 shadow-xs'
                           : 'border-slate-200 hover:border-slate-300 bg-white'
                       }`}
                     >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className={`w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center shrink-0 ${choice.color}`}>
-                          <IconComponent className="w-4 h-4" />
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-start gap-3 min-w-0">
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
+                            isSelected ? 'bg-pink-100 text-pink-700' : 'bg-slate-100 text-slate-500'
+                          }`}>
+                            <RuleIcon className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <strong className="text-xs sm:text-sm font-black text-slate-950">
+                                {rule.title}
+                              </strong>
+                              {rule.badge && (
+                                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${rule.badgeColor}`}>
+                                  {rule.badge}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-slate-600 leading-relaxed mt-1">
+                              {rule.desc}
+                            </p>
+                          </div>
                         </div>
-                        <span className="text-xs sm:text-sm font-bold text-slate-800 leading-snug">
-                          {choice.label}
-                        </span>
-                      </div>
-                      <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
-                        isSelected ? 'border-pink-600 bg-pink-600 text-white' : 'border-slate-300'
-                      }`}>
-                        {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+
+                        <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 mt-1 ${
+                          isSelected ? 'border-pink-600 bg-pink-600 text-white' : 'border-slate-300'
+                        }`}>
+                          {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                        </div>
                       </div>
                     </button>
                   );
                 })}
-              </div>
-
-              {/* Boîte de réassurance dynamique */}
-              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-700 leading-relaxed font-medium">
-                {formData.situation === 'whatsapp' && '💬 Top ! Tu vas pouvoir envoyer ton lien de réservation directement dans tes discussions WhatsApp et ne plus perdre de temps à négocier les créneaux.'}
-                {formData.situation === 'carnet' && '📒 Fini les ratures et les doubles réservations ! Ton planning sera toujours à jour sur ton téléphone avec tes alertes en direct.'}
-                {formData.situation === 'lapins' && '🛡️ C\'est le cauchemar des salons. Grâce à l\'acompte obligatoire, tes clientes sont obligées d\'honorer le créneau ou tu encaisses l\'acompte !'}
-                {formData.situation === 'domicile' && '🏠 Parfait ! Tu pourras renseigner tes disponibilités et recevoir sur rendez-vous privé sans stress.'}
-                {formData.situation === 'start' && '🚀 Tout le monde commence quelque part. On va y aller une action à la fois, sans rien te demander de compliqué.'}
               </div>
 
               <div className="pt-2">
@@ -530,15 +568,15 @@ export const OnboardingWizard = ({
             </div>
           )}
 
-          {/* ---------------- 4. ÉTAPE 4/5 : TU ES DANS QUEL PAYS ? ---------------- */}
+          {/* ---------------- 4. ÉTAPE 4/5 : OÙ ÊTES-VOUS BASÉE ? ---------------- */}
           {stage === 4 && (
             <div className="space-y-6">
               <div className="space-y-1 text-center sm:text-left">
                 <h2 className="text-xl sm:text-2xl font-black text-slate-950 tracking-tight">
-                  Tu es dans quel pays ?
+                  Où êtes-vous basée ?
                 </h2>
                 <p className="text-xs text-slate-500">
-                  Pour brancher les moyens de paiement locaux de tes clientes.
+                  Pour configurer votre devise (FCFA), le préfixe téléphonique et les passerelles de paiement acceptées.
                 </p>
               </div>
 
@@ -580,7 +618,7 @@ export const OnboardingWizard = ({
 
               <div className="space-y-2 pt-1">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
-                  Moyens de paiement branchés pour le {currentCountry.name} :
+                  Moyens de paiement acceptés pour le {currentCountry.name} :
                 </span>
                 <div className="flex flex-wrap gap-2">
                   {(currentCountry.paymentMethods || []).map((method) => (
@@ -613,31 +651,32 @@ export const OnboardingWizard = ({
             </div>
           )}
 
-          {/* ---------------- 5. ÉTAPE 5/5 : COMPTE & ALERTES DANS L'APPLICATION ---------------- */}
+          {/* ---------------- 5. ÉTAPE 5/5 : COORDONNÉES GÉRANTE & ALERTES EN DIRECT ---------------- */}
           {stage === 5 && (
-            <form onSubmit={handleFinalize} className="space-y-5">
+            <form onSubmit={handleFinalize} className="space-y-4">
               <div className="space-y-1 text-center sm:text-left">
                 <h2 className="text-xl sm:text-2xl font-black text-slate-950 tracking-tight">
-                  Crée ton accès sécurisé
+                  Où devons-nous vous alerter ?
                 </h2>
                 <p className="text-xs text-slate-500">
-                  Pour accéder à ton tableau de bord et recevoir tes alertes en direct.
+                  Vos identifiants gérante et vos coordonnées professionnelles.
                 </p>
               </div>
 
-              <div className="space-y-3.5">
+              <div className="space-y-3 pt-1">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Prénom & Nom de la Gérante *
+                    Votre prénom et nom *
                   </label>
                   <div className="relative">
                     <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                     <input
                       type="text"
                       required
+                      autoFocus
                       value={formData.ownerName}
                       onChange={(e) => setFormData(prev => ({ ...prev, ownerName: e.target.value }))}
-                      placeholder="Ex : Awa Diop"
+                      placeholder="Ex : Fatou Diallo"
                       className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-pink-500"
                     />
                   </div>
@@ -645,7 +684,7 @@ export const OnboardingWizard = ({
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Téléphone professionnel ({currentCountry.name}) *
+                    Numéro WhatsApp / Téléphone professionnel *
                   </label>
                   <div className="flex gap-2">
                     <span className="px-3 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-bold text-slate-700 shrink-0 flex items-center">
@@ -710,7 +749,7 @@ export const OnboardingWizard = ({
                       Alertes de réservation intégrées dans l'application
                     </strong>
                     <span className="text-[11px] text-purple-800/90 leading-relaxed block mt-0.5">
-                      Dès qu'une cliente réserve, la sonnerie de caisse retentit et une notification apparaît en direct sur votre écran.
+                      Dès qu'une cliente réserve son créneau, la sonnerie de caisse retentit et la notification s'affiche en direct sur votre écran.
                     </span>
                   </div>
                 </div>
@@ -722,7 +761,7 @@ export const OnboardingWizard = ({
                   disabled={submitting}
                   className="w-full py-3.5 px-6 rounded-2xl bg-pink-600 hover:bg-pink-700 active:scale-98 text-white font-black text-sm sm:text-base flex items-center justify-center gap-2 shadow-lg shadow-pink-200 transition-all cursor-pointer disabled:opacity-50"
                 >
-                  <span>{submitting ? 'Préparation de votre salon...' : 'Ouvrir mon salon en direct 🚀'}</span>
+                  <span>{submitting ? 'Préparation de votre salon...' : 'Lancer mon salon en direct 🚀'}</span>
                 </button>
               </div>
             </form>
