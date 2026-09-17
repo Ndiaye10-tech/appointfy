@@ -19,10 +19,11 @@ import { StaffManager } from './components/salon/StaffManager';
 import { ClientPreviewEditor } from './components/salon/ClientPreviewEditor';
 import { SettingsManager } from './components/salon/SettingsManager';
 import { SubscriptionPaywall } from './components/salon/SubscriptionPaywall';
+import { SuperAdminDashboard } from './components/admin/SuperAdminDashboard';
 import { Menu, Eye, MapPin, Clock, Phone, ShieldCheck, Sparkles, LogOut, UserCheck, AlertTriangle } from 'lucide-react';
 
 const AppContent = () => {
-  const { currentView, setCurrentView, authMode, step, appointments, salon, currentUser, logout, isSubscriptionExpired } = useBooking();
+  const { currentView, setCurrentView, authMode, step, appointments, salon, currentUser, logout, isSubscriptionExpired, isPlatformAdmin } = useBooking();
   const [salonTab, setSalonTab] = useState('dashboard'); // 'dashboard' | 'planning' | 'crm' | 'pos' | 'stats' | 'showcase' | 'settings'
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
@@ -144,6 +145,18 @@ const AppContent = () => {
                 </div>
               </header>
 
+              {/* Bannière de communication globale Super-Admin (si active) */}
+              {localStorage.getItem('appointfy_global_broadcast') && (
+                <div className="bg-gradient-to-r from-purple-950 via-slate-900 to-purple-950 text-purple-200 border-b border-purple-500/30 px-4 py-2.5 sm:px-6 flex items-center justify-between gap-3 text-xs font-semibold">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded-full bg-purple-500/30 text-purple-300 text-[10px] font-black uppercase tracking-wider shrink-0">
+                      📢 Annonce Plateforme
+                    </span>
+                    <span>{localStorage.getItem('appointfy_global_broadcast')}</span>
+                  </div>
+                </div>
+              )}
+
               {/* Bannière d'alerte expiration si les 14 jours sont écoulés */}
               {isSubscriptionExpired && (
                 <div className="bg-gradient-to-r from-rose-600 to-amber-600 text-white px-4 py-3 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-md">
@@ -261,6 +274,11 @@ const AppContent = () => {
             </div>
 
           </div>
+        )}
+
+        {/* ================= 5. ESPACE SUPER-ADMIN (TOUR DE CONTRÔLE SAAS) ================= */}
+        {currentView === 'admin' && isPlatformAdmin && (
+          <SuperAdminDashboard />
         )}
       </main>
 

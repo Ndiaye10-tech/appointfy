@@ -1935,6 +1935,72 @@ export const BookingProvider = ({ children }) => {
     setActiveStaffMember(null);
   };
 
+  // ================= ACTIONS SUPER-ADMIN SAAS (mahmoudndiaye100@gmail.com) =================
+  const fetchAllSalons = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('salons')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    } catch (err) {
+      console.warn('Erreur fetchAllSalons:', err);
+      return [];
+    }
+  };
+
+  const adminManageSalon = async (salonId, action, days = 14) => {
+    try {
+      // 1. Appel RPC Supabase
+      const { data: rpcData, error: rpcErr } = await supabase.rpc('admin_manage_salon', {
+        p_salon_id: salonId,
+        p_action: action,
+        p_days: days
+      });
+      if (!rpcErr && rpcData?.success) {
+        return { success: true, message: rpcData.message };
+      }
+
+      // 2. Fallback update direct
+      let updates = {};
+      if (action === 'activate') {
+        const expDate = new Date();
+        expDate.setDate(expDate.getDate() + (days || 30));
+        updates = {
+          subscription_status: 'active',
+          is_subscription_active: true,
+          subscription_expires_at: expDate.toISOString(),
+          last_subscription_payment: new Date().toISOString()
+        };
+      } else if (action === 'extend_trial') {
+        const expDate = new Date();
+        expDate.setDate(expDate.getDate() + (days || 14));
+        updates = {
+          subscription_status: 'trial',
+          is_subscription_active: true,
+          trial_ends_at: expDate.toISOString()
+        };
+      } else if (action === 'suspend') {
+        updates = {
+          subscription_status: 'expired',
+          is_subscription_active: false
+        };
+      }
+
+      const { error: updateErr } = await supabase
+        .from('salons')
+        .update(updates)
+        .eq('id', salonId);
+
+      if (updateErr) throw updateErr;
+      return { success: true, message: 'Salon mis à jour avec succès.' };
+    } catch (err) {
+      console.error('Erreur adminManageSalon:', err);
+      return { success: false, error: err.message };
+    }
+  };
+
   return (
     <BookingContext.Provider
       value={{
@@ -1968,6 +2034,8 @@ export const BookingProvider = ({ children }) => {
         isSalonOwner,
         isSubscriptionExpired,
         isPlatformAdmin,
+        fetchAllSalons,
+        adminManageSalon,
         completeOnboarding,
         logout,
         step,

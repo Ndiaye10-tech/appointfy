@@ -28,7 +28,7 @@ export const SalonSidebar = ({
   logout,
   onCloseMobile
 }) => {
-  const { currentAccessLevel, activeStaffMember } = useBooking();
+  const { currentAccessLevel, activeStaffMember, isPlatformAdmin, setCurrentView } = useBooking();
 
   const allSections = [
     {
@@ -129,6 +129,28 @@ export const SalonSidebar = ({
             <span>Voir le site client ↗</span>
           </a>
         </div>
+        
+        {/* Accès Tour de Contrôle Super-Admin (Exclusif mahmoudndiaye100@gmail.com) */}
+        {isPlatformAdmin && (
+          <button
+            type="button"
+            onClick={() => {
+              setCurrentView('admin');
+              if (onCloseMobile) onCloseMobile();
+            }}
+            className="w-full py-2.5 px-3 rounded-2xl bg-gradient-to-r from-purple-950 via-slate-900 to-purple-950 border border-purple-500/40 text-purple-200 font-extrabold text-xs flex items-center justify-between shadow-md shadow-purple-950/40 hover:border-purple-400 transition-all cursor-pointer group"
+          >
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-lg bg-purple-500/30 flex items-center justify-center text-amber-300 font-bold text-xs">
+                👑
+              </div>
+              <span className="group-hover:text-white transition-colors">Tour de Contrôle</span>
+            </div>
+            <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-purple-500/30 text-purple-200 border border-purple-400/30">
+              Admin
+            </span>
+          </button>
+        )}
 
         {/* Navigation Sections */}
         <nav className="space-y-4 pt-1">
