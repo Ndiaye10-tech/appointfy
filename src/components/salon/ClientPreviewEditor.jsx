@@ -79,7 +79,10 @@ import {
 } from '../../data/mockData';
 
 export const ClientPreviewEditor = () => {
-  const { salon, updateSalon, services, setCurrentView, setSalon } = useBooking();
+  const { salon, updateSalon, services, setCurrentView, setSalon, isModuleEnabled } = useBooking();
+  const isStaffModuleEnabled = typeof isModuleEnabled === 'function' 
+    ? isModuleEnabled('staff') 
+    : (salon?.enabled_modules?.staff !== false && (salon?.teamMode === 'team' || salon?.team_mode === 'team'));
 
   // Local form editing state
   const [formData, setFormData] = useState({
@@ -195,8 +198,14 @@ export const ClientPreviewEditor = () => {
     return () => clearTimeout(timer);
   }, [formData]);
 
-  // UI state
   const [activeEditorTab, setActiveEditorTab] = useState('branding'); // 'branding' | 'services' | 'schedule' | 'info' | 'team' | 'gallery' | 'promo' | 'qrcode'
+
+  useEffect(() => {
+    if (!isStaffModuleEnabled && activeEditorTab === 'team') {
+      setActiveEditorTab('branding');
+      setMobileSection(null);
+    }
+  }, [isStaffModuleEnabled, activeEditorTab]);
   const [mobileMode, setMobileMode] = useState('edit'); // 'edit' | 'preview'
   const [mobileSection, setMobileSection] = useState(null); // null (Hub menu) | 'services' | 'schedule' | 'branding' | 'team' | 'info' | 'advanced'
   const [previewDevice, setPreviewDevice] = useState('mobile'); // 'mobile' | 'large_mobile' | 'desktop'
@@ -785,30 +794,32 @@ export const ClientPreviewEditor = () => {
                   <ChevronRight className="w-5 h-5 text-slate-400 shrink-0" />
                 </button>
 
-                {/* 5. Notre Équipe */}
-                <button
-                  type="button"
-                  onClick={() => { setActiveEditorTab('team'); setMobileSection('team'); }}
-                  className="p-4 rounded-2xl bg-white border border-pink-100 hover:border-pink-300 shadow-2xs flex items-center justify-between text-left transition-all active:scale-98 cursor-pointer"
-                >
-                  <div className="flex items-center gap-3.5 min-w-0">
-                    <div className="w-11 h-11 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
-                      <Users className="w-5 h-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-black text-sm text-slate-900">Notre Équipe</span>
-                        <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-black">
-                          {formData.team?.length || 0} membres
-                        </span>
+                {/* 5. Notre Équipe (Uniquement si le module Équipe est activé dans les Paramètres) */}
+                {isStaffModuleEnabled && (
+                  <button
+                    type="button"
+                    onClick={() => { setActiveEditorTab('team'); setMobileSection('team'); }}
+                    className="p-4 rounded-2xl bg-white border border-pink-100 hover:border-pink-300 shadow-2xs flex items-center justify-between text-left transition-all active:scale-98 cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3.5 min-w-0">
+                      <div className="w-11 h-11 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                        <Users className="w-5 h-5" />
                       </div>
-                      <p className="text-xs text-slate-500 truncate mt-0.5">
-                        Vos coiffeuses et collaboratrices
-                      </p>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-black text-sm text-slate-900">Notre Équipe</span>
+                          <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-black">
+                            {formData.team?.length || 0} membres
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500 truncate mt-0.5">
+                          Vos coiffeuses et collaboratrices
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-slate-400 shrink-0" />
-                </button>
+                    <ChevronRight className="w-5 h-5 text-slate-400 shrink-0" />
+                  </button>
+                )}
 
                 {/* 6. Galerie Photos */}
                 <button
@@ -914,18 +925,20 @@ export const ClientPreviewEditor = () => {
               <span>Coordonnées</span>
             </button>
 
-            {/* 5. Notre Équipe */}
-            <button
-              onClick={() => setActiveEditorTab('team')}
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-                activeEditorTab === 'team'
-                  ? 'bg-pink-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-pink-600 hover:bg-pink-50'
-              }`}
-            >
-              <Users className="w-3.5 h-3.5" />
-              <span>Notre Équipe ({formData.team?.length || 0})</span>
-            </button>
+            {/* 5. Notre Équipe (Uniquement si le module Équipe est activé dans les Paramètres) */}
+            {isStaffModuleEnabled && (
+              <button
+                onClick={() => setActiveEditorTab('team')}
+                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+                  activeEditorTab === 'team'
+                    ? 'bg-pink-600 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-pink-600 hover:bg-pink-50'
+                }`}
+              >
+                <Users className="w-3.5 h-3.5" />
+                <span>Notre Équipe ({formData.team?.length || 0})</span>
+              </button>
+            )}
 
             {/* 6. Galerie Photos */}
             <button
@@ -1108,72 +1121,18 @@ export const ClientPreviewEditor = () => {
                 </div>
               </div>
 
-              {/* SÉLECTEUR DU MODE D'ORGANISATION : SOLO VS ÉQUIPE */}
-              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-slate-50 to-pink-50/30 border border-slate-200/80 space-y-3">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div>
-                    <h4 className="text-xs font-black uppercase text-slate-900 tracking-wider">
-                      Mode d'Organisation du Salon
-                    </h4>
-                    <p className="text-[11px] text-slate-500 mt-0.5">
-                      Définissez si vous travaillez seule ou avec une équipe de praticiennes.
-                    </p>
+              {/* Note d'information sur le mode Équipe actif */}
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-pink-50/60 border border-pink-100 flex items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-pink-100 text-pink-700 flex items-center justify-center shrink-0">
+                    <Users className="w-4 h-4" />
                   </div>
-                  <span className={`text-[10px] font-black px-2.5 py-1 rounded-full border self-start sm:self-auto ${
-                    formData.teamMode === 'team'
-                      ? 'bg-pink-100 text-pink-700 border-pink-200'
-                      : 'bg-emerald-100 text-emerald-800 border-emerald-200'
-                  }`}>
-                    {formData.teamMode === 'team' ? '👥 Mode Équipe (Plusieurs praticiennes)' : '👤 Mode Solo (Praticienne unique)'}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setFormData(prev => ({ ...prev, teamMode: 'solo' }));
-                      updateSalon({ teamMode: 'solo' });
-                    }}
-                    className={`p-4 rounded-xl border-2 text-left transition-all cursor-pointer ${
-                      formData.teamMode === 'solo'
-                        ? 'border-pink-500 bg-white ring-4 ring-pink-500/10 shadow-xs'
-                        : 'border-slate-200 bg-white/70 hover:border-slate-300'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${formData.teamMode === 'solo' ? 'bg-pink-600 text-white' : 'bg-slate-100 text-slate-600'}`}>
-                        <User className="w-4 h-4" />
-                      </div>
-                      <span className="text-xs font-black text-slate-900">Je travaille seule (Solo)</span>
-                    </div>
-                    <p className="text-[11px] text-slate-500 mt-2 leading-relaxed">
-                      Un seul agenda unifié. Chaque réservation bloque le fauteuil pour toute la durée de la prestation (ex: 2h).
-                    </p>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setFormData(prev => ({ ...prev, teamMode: 'team' }));
-                      updateSalon({ teamMode: 'team' });
-                    }}
-                    className={`p-4 rounded-xl border-2 text-left transition-all cursor-pointer ${
-                      formData.teamMode === 'team'
-                        ? 'border-pink-500 bg-white ring-4 ring-pink-500/10 shadow-xs'
-                        : 'border-slate-200 bg-white/70 hover:border-slate-300'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${formData.teamMode === 'team' ? 'bg-pink-600 text-white' : 'bg-slate-100 text-slate-600'}`}>
-                        <Users className="w-4 h-4" />
-                      </div>
-                      <span className="text-xs font-black text-slate-900">J'ai une équipe (Plusieurs coiffeuses)</span>
-                    </div>
-                    <p className="text-[11px] text-slate-500 mt-2 leading-relaxed">
-                      Chaque coiffeuse a son propre planning distinct. La cliente peut choisir sa praticienne préférée lors de la réservation.
-                    </p>
-                  </button>
+                  <div>
+                    <span className="font-bold text-slate-900 block">Mode Équipe activé</span>
+                    <span className="text-[11px] text-slate-500 block">
+                      Vos collaboratrices sont présentées sur votre vitrine et peuvent être sélectionnées lors de la réservation.
+                    </span>
+                  </div>
                 </div>
               </div>
 
