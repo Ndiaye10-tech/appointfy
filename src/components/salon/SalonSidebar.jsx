@@ -15,6 +15,7 @@ import {
   Boxes,
   ShieldCheck,
   Package,
+  Crown,
   X
 } from 'lucide-react';
 import { BrandLogo } from '../common/BrandLogo';
@@ -52,7 +53,14 @@ export const SalonSidebar = ({
     {
       group: "COMPTE",
       items: [
-        { id: 'settings', label: 'Paramètres', icon: Settings, minLevel: 'level_1' }
+        { id: 'settings', label: 'Paramètres', icon: Settings, minLevel: 'level_1' },
+        { 
+          id: 'subscription', 
+          label: 'Abonnement Appointfy', 
+          icon: Crown, 
+          minLevel: 'level_1',
+          badgeText: salon?.subscriptionStatus === 'active' ? 'Actif' : '9 900 F'
+        }
       ]
     }
   ];
@@ -197,6 +205,15 @@ export const SalonSidebar = ({
                           isActive ? 'bg-pink-600 text-white' : 'bg-slate-100 text-slate-600'
                         }`}>
                           {item.badge}
+                        </span>
+                      )}
+                      {item.badgeText && (
+                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 ${
+                          item.badgeText === 'Actif'
+                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                            : (isActive ? 'bg-amber-500 text-white shadow-xs' : 'bg-amber-100 text-amber-900 border border-amber-200')
+                        }`}>
+                          {item.badgeText}
                         </span>
                       )}
                     </button>

@@ -18,6 +18,7 @@ import { InventoryManager } from './components/salon/InventoryManager';
 import { StaffManager } from './components/salon/StaffManager';
 import { ClientPreviewEditor } from './components/salon/ClientPreviewEditor';
 import { SettingsManager } from './components/salon/SettingsManager';
+import { SubscriptionManager } from './components/salon/SubscriptionManager';
 import { SubscriptionPaywall } from './components/salon/SubscriptionPaywall';
 import { SuperAdminDashboard } from './components/admin/SuperAdminDashboard';
 import { usePWA } from './hooks/usePWA';
@@ -123,7 +124,8 @@ const AppContent = () => {
                       {salonTab === 'staff' && '🛡️ Équipe & Niveaux d\'Accès'}
                       {salonTab === 'stats' && '📊 Statistiques'}
                       {(salonTab === 'showcase' || salonTab === 'share' || salonTab === 'services') && '🎨 Ma vitrine'}
-                      {(salonTab === 'settings' || salonTab === 'subscription') && '⚙️ Paramètres'}
+                      {salonTab === 'settings' && '⚙️ Paramètres'}
+                      {salonTab === 'subscription' && '👑 Abonnement Appointfy'}
                     </h2>
                   </div>
                 </div>
@@ -307,9 +309,16 @@ const AppContent = () => {
                       <ClientPreviewEditor />
                     )}
 
-                    {/* Onglet 7 : Paramètres & Abonnement */}
-                    {(salonTab === 'settings' || salonTab === 'subscription') && (
-                      <SettingsManager defaultSection={salonTab === 'subscription' ? 'subscription' : undefined} />
+                    {/* Onglet 7 : Paramètres */}
+                    {salonTab === 'settings' && (
+                      <SettingsManager />
+                    )}
+
+                    {/* Onglet 8 : Abonnement Appointfy Dédié (Direct & Visible) */}
+                    {salonTab === 'subscription' && (
+                      <div className="space-y-6 animate-in fade-in duration-200">
+                        <SubscriptionManager />
+                      </div>
                     )}
                   </>
                 )}
