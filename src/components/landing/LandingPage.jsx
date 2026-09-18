@@ -38,7 +38,7 @@ const PROFESSIONS = [
     points: [
       'Lookbook photo de vos plus belles poses',
       'Durée exacte calculée pour ne jamais accumuler de retard',
-      'Acomptes Wave obligatoires pour sécuriser vos heures de travail'
+      'Acomptes en ligne pour sécuriser vos heures de travail'
     ]
   },
   {
@@ -218,7 +218,7 @@ export const LandingPage = () => {
 
           {/* Sous-titre percutant */}
           <p className="text-sm sm:text-base text-stone-600 leading-relaxed max-w-2xl mx-auto">
-            Offrez à vos clientes un <strong>site de réservation chic</strong> pour votre bio Instagram, éliminez 95% des lapins grâce aux <strong>acomptes Wave obligatoires</strong>, et pilotez votre planning 100% sur smartphone.
+            Offrez à vos clientes un <strong>site de réservation chic</strong> pour votre bio Instagram, éliminez 95% des lapins et pilotez votre planning 100% sur smartphone.
           </p>
 
           {/* Bouton CTA Unique & Centré */}
