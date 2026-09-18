@@ -23,7 +23,8 @@ import {
   Scissors,
   ShieldCheck,
   Package,
-  Crown
+  Crown,
+  Zap
 } from 'lucide-react';
 import { BrandLogo } from '../common/BrandLogo';
 
@@ -644,55 +645,167 @@ export const LandingPage = () => {
 
       </section>
 
-      {/* ================= 7. TARIFICATION CLAIRE ================= */}
-      <section id="tarifs" className="py-14 px-4 sm:px-6 lg:px-8 max-w-3xl mx-auto border-t border-stone-200/70 text-center">
+      {/* ================= 7. TARIFICATION CLAIRE & RENTABILITÉ ================= */}
+      <section id="tarifs" className="py-16 sm:py-20 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto border-t border-stone-200/70 text-center">
         
-        <span className="text-xs font-black uppercase tracking-wider text-pink-700 bg-pink-50 px-3 py-1 rounded-full border border-pink-200">
-          Offre Pro Tout Compris
-        </span>
-        <h2 className="text-2xl sm:text-4xl font-black text-stone-950 mt-3 tracking-tight">
-          Un tarif simple, sans frais cachés
-        </h2>
+        <div className="space-y-3">
+          <span className="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-pink-700 bg-pink-50 px-3.5 py-1.5 rounded-full border border-pink-200 shadow-2xs">
+            <Sparkles className="w-3.5 h-3.5 text-pink-600" />
+            <span>Offre Pro Tout Compris</span>
+          </span>
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-stone-950 tracking-tight">
+            Un tarif simple, rentable dès le 1er jour
+          </h2>
+          <p className="text-xs sm:text-base text-stone-600 max-w-xl mx-auto leading-relaxed">
+            Moins de 330 FCFA par jour pour éliminer 95% des lapins, professionnaliser votre image et recevoir des réservations même pendant que vous dormez.
+          </p>
+        </div>
 
-        <div className="mt-8 bg-white rounded-3xl p-8 border-2 border-pink-300 shadow-lg text-center space-y-5">
-          <div className="inline-block px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-xs font-black border border-emerald-200">
-            14 JOURS D'ESSAI GRATUIT • SANS CARTE BANCAIRE
+        {/* CARTE TARIF PREMIUM TOUT COMPRIS */}
+        <div className="mt-10 max-w-2xl mx-auto bg-white rounded-3xl sm:rounded-4xl border-2 border-pink-200/90 shadow-[0_12px_45px_rgba(244,63,94,0.09)] overflow-hidden transition-all hover:border-pink-300">
+          
+          {/* Ruban Supérieur VIP */}
+          <div className="bg-gradient-to-r from-pink-600 via-rose-500 to-amber-500 text-white py-2.5 px-4 text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-xs">
+            <Crown className="w-4 h-4 fill-white" />
+            <span>Le Choix Préféré des Salons & Praticiennes Indépendantes</span>
           </div>
 
-          <div className="flex items-baseline justify-center gap-1.5">
-            <span className="text-4xl sm:text-5xl font-black text-stone-950">9 900</span>
-            <span className="text-stone-500 text-sm font-bold">FCFA / mois</span>
+          <div className="p-6 sm:p-10 space-y-6">
+            
+            {/* Badge Période d'essai */}
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 text-emerald-800 text-xs font-black border border-emerald-200 shadow-2xs">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>14 JOURS D'ESSAI GRATUIT • 0 CARTE BANCAIRE REQUISE</span>
+            </div>
+
+            {/* Bloc Tarif Grand Format */}
+            <div className="space-y-1">
+              <div className="flex items-baseline justify-center gap-2 flex-wrap">
+                <span className="text-4xl sm:text-6xl font-black text-stone-950 tracking-tight">9 900</span>
+                <span className="text-stone-500 text-base sm:text-lg font-bold">FCFA / mois</span>
+                <span className="text-[11px] font-black uppercase px-2.5 py-1 rounded-full bg-pink-100 text-pink-700 border border-pink-200 ml-1">
+                  Sans engagement
+                </span>
+              </div>
+              <p className="text-xs text-stone-500 font-medium">
+                0% de commission sur vos prestations • Vos acomptes vont 100% sur votre compte
+              </p>
+            </div>
+
+            {/* Séparateur */}
+            <div className="w-full border-t border-stone-100 pt-2" />
+
+            {/* Grille des fonctionnalités (6 piliers riches & détaillés) */}
+            <div className="space-y-3 text-left">
+              <h4 className="text-xs font-black uppercase tracking-wider text-stone-400 text-center sm:text-left">
+                Tout ce qui est inclus dans votre espace Pro :
+              </h4>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-stone-800">
+                
+                <div className="p-3.5 rounded-2xl bg-stone-50/80 border border-stone-200/70 flex items-start gap-2.5">
+                  <div className="p-1.5 rounded-xl bg-pink-100 text-pink-700 shrink-0 mt-0.5">
+                    <Check className="w-3.5 h-3.5 stroke-[3]" />
+                  </div>
+                  <div>
+                    <span className="font-extrabold text-stone-950 block">Site vitrine chic & personnalisé</span>
+                    <span className="text-[11px] text-stone-600">Lien prêt pour votre bio Instagram, WhatsApp & TikTok.</span>
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-stone-50/80 border border-stone-200/70 flex items-start gap-2.5">
+                  <div className="p-1.5 rounded-xl bg-emerald-100 text-emerald-700 shrink-0 mt-0.5">
+                    <ShieldCheck className="w-3.5 h-3.5 stroke-[2.5]" />
+                  </div>
+                  <div>
+                    <span className="font-extrabold text-stone-950 block">Acomptes Anti-Lapin</span>
+                    <span className="text-[11px] text-stone-600">Wave au Sénégal 🇸🇳 & Paystack / Mobile Money en Côte d'Ivoire 🇨🇮.</span>
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-stone-50/80 border border-stone-200/70 flex items-start gap-2.5">
+                  <div className="p-1.5 rounded-xl bg-pink-100 text-pink-700 shrink-0 mt-0.5">
+                    <Calendar className="w-3.5 h-3.5 stroke-[2.5]" />
+                  </div>
+                  <div>
+                    <span className="font-extrabold text-stone-950 block">Agenda & Planning 24h/7j</span>
+                    <span className="text-[11px] text-stone-600">Prise de rendez-vous automatique même pendant vos soins.</span>
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-stone-50/80 border border-stone-200/70 flex items-start gap-2.5">
+                  <div className="p-1.5 rounded-xl bg-emerald-100 text-emerald-700 shrink-0 mt-0.5">
+                    <MessageSquare className="w-3.5 h-3.5 stroke-[2.5]" />
+                  </div>
+                  <div>
+                    <span className="font-extrabold text-stone-950 block">Rappels WhatsApp en 1 clic</span>
+                    <span className="text-[11px] text-stone-600">Messages personnalisés pour éviter tout oubli ou retard.</span>
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-stone-50/80 border border-stone-200/70 flex items-start gap-2.5">
+                  <div className="p-1.5 rounded-xl bg-pink-100 text-pink-700 shrink-0 mt-0.5">
+                    <Smartphone className="w-3.5 h-3.5 stroke-[2.5]" />
+                  </div>
+                  <div>
+                    <span className="font-extrabold text-stone-950 block">100% Mobile & Réactif</span>
+                    <span className="text-[11px] text-stone-600">Pilotez tout depuis votre smartphone sans rien installer.</span>
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-stone-50/80 border border-stone-200/70 flex items-start gap-2.5">
+                  <div className="p-1.5 rounded-xl bg-emerald-100 text-emerald-700 shrink-0 mt-0.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 stroke-[2.5]" />
+                  </div>
+                  <div>
+                    <span className="font-extrabold text-stone-950 block">Fichier clientes & Historique</span>
+                    <span className="text-[11px] text-stone-600">Coordonnées, notes privées et suivi de chaque cliente.</span>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            {/* Bouton CTA Grand Format */}
+            <div className="pt-2 space-y-3">
+              <button
+                type="button"
+                onClick={handleOpenRegister}
+                className="w-full py-4 px-8 rounded-2xl bg-gradient-to-r from-pink-600 via-rose-500 to-pink-500 hover:from-pink-500 hover:to-rose-400 text-white font-black text-sm sm:text-base shadow-lg shadow-pink-500/25 flex items-center justify-center gap-2.5 transition-all cursor-pointer hover:scale-[1.02]"
+              >
+                <Zap className="w-5 h-5 fill-white shrink-0" />
+                <span>Démarrer mes 14 jours d'essai gratuit</span>
+                <ArrowRight className="w-4 h-4 shrink-0" />
+              </button>
+
+              <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-[11px] text-stone-500 font-medium">
+                <span className="flex items-center gap-1">
+                  <Check className="w-3.5 h-3.5 text-emerald-600" />
+                  Prêt en 2 minutes
+                </span>
+                <span>•</span>
+                <span className="flex items-center gap-1">
+                  <Check className="w-3.5 h-3.5 text-emerald-600" />
+                  Sans engagement
+                </span>
+                <span>•</span>
+                <span className="flex items-center gap-1">
+                  <Check className="w-3.5 h-3.5 text-emerald-600" />
+                  Assistance WhatsApp 7j/7
+                </span>
+              </div>
+            </div>
+
+            {/* Encadré d'assurance ROI / Rentabilité */}
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-amber-50/70 border border-amber-200/80 text-left flex items-start gap-3">
+              <div className="text-xl shrink-0 mt-0.5">💡</div>
+              <p className="text-[11px] sm:text-xs text-amber-950 leading-relaxed">
+                <strong>Le calcul est vite fait :</strong> Un seul lapin évité dans le mois vous fait économiser entre <strong>15 000 et 35 000 FCFA</strong>. Votre abonnement est rentabilisé dès votre premier rendez-vous sécurisé.
+              </p>
+            </div>
+
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-left text-xs text-stone-700 max-w-md mx-auto pt-2">
-            <div className="flex items-center gap-2">
-              <Check className="w-4 h-4 text-emerald-600 stroke-[3] shrink-0" />
-              <span>Site web de réservation en bio</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Check className="w-4 h-4 text-emerald-600 stroke-[3] shrink-0" />
-              <span>Acomptes Wave automatiques</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Check className="w-4 h-4 text-emerald-600 stroke-[3] shrink-0" />
-              <span>Planning mobile avec alertes</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Check className="w-4 h-4 text-emerald-600 stroke-[3] shrink-0" />
-              <span>Fiches clientes & historique</span>
-            </div>
-          </div>
-
-          <div className="pt-4">
-            <button
-              type="button"
-              onClick={handleOpenRegister}
-              className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500 text-white font-black text-sm shadow-md shadow-pink-500/25 transition-all cursor-pointer inline-flex items-center justify-center gap-2"
-            >
-              <span>Créer mon espace pro gratuit</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
         </div>
 
       </section>
