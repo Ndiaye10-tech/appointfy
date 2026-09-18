@@ -210,7 +210,7 @@ export const SalonSidebar = ({
             <MessageCircle className="w-4 h-4 text-emerald-600 shrink-0" />
             <div className="text-left min-w-0">
               <span className="block truncate font-extrabold text-[11px]">Support Salons</span>
-              <span className="block text-[10px] text-emerald-700 font-mono font-bold">78 472 29 51</span>
+              <span className="block text-[10px] text-emerald-700 font-bold">Assistance 7j/7</span>
             </div>
           </div>
           <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-emerald-200 text-emerald-900 font-black uppercase shrink-0">

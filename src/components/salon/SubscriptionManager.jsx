@@ -240,7 +240,7 @@ export const SubscriptionManager = () => {
         customerPhone: phone || salon.phone || '770000000',
         paymentMethod: paymentMethod,
         country: salonCountry,
-        description: `Abonnement 30 jours Appointfy - ${salon.name} (Bénéficiaire Admin: ${PLATFORM_ADMIN_WAVE_PHONE})`,
+        description: `Abonnement 30 jours Appointfy - ${salon.name || 'Salon'}`,
         metadata: {
           salon_id: salon.id,
           salon_name: salon.name,
@@ -249,7 +249,7 @@ export const SubscriptionManager = () => {
           recipient_phone: PLATFORM_ADMIN_WAVE_PHONE,
           recipient_wave: PLATFORM_ADMIN_WAVE_PHONE,
           beneficiary_phone: PLATFORM_ADMIN_WAVE_PHONE_INTL,
-          beneficiary_name: 'Mahmoud Ndiaye (Admin Appointfy)',
+          beneficiary_name: 'Appointfy Technologies',
           admin_phone: PLATFORM_ADMIN_WAVE_PHONE,
           payment_method: paymentMethod,
           period_days: 30
@@ -304,7 +304,7 @@ export const SubscriptionManager = () => {
             </h2>
             <p className="text-white/90 text-sm leading-relaxed">
               {isPlatformAdmin
-                ? 'Compte officiel du fondateur (Mahmoud Ndiaye). Vous bénéficiez d\'un accès illimité à vie sans aucun abonnement à payer. Tous les abonnements des salons partenaires (9 900 F/mois) sont versés directement sur votre compte Wave (78 472 29 51).'
+                ? 'Compte officiel Administrateur Plateforme. Vous bénéficiez d\'un accès illimité sans aucun abonnement à payer. Les règlements des abonnements des salons partenaires (9 900 F/mois) sont versés directement sur votre compte Wave administrateur.'
                 : 'Profitez d\'un outil complet pour encaisser vos acomptes clients, automatiser votre planning et éliminer les rendez-vous non honorés.'}
             </p>
           </div>
@@ -317,7 +317,7 @@ export const SubscriptionManager = () => {
               {isPlatformAdmin ? 'Accès à Vie' : formatFCFA(subscriptionPrice)}
             </div>
             <span className="text-xs text-white/80">
-              {isPlatformAdmin ? 'Fondateur Appointfy (0 FCFA)' : '/ mois sans engagement'}
+              {isPlatformAdmin ? 'Administrateur Plateforme' : '/ mois sans engagement'}
             </span>
             
             {!isPlatformAdmin && (
@@ -368,10 +368,10 @@ export const SubscriptionManager = () => {
                   Accès Permanent
                 </div>
                 <p className="text-xs text-emerald-700 font-bold">
-                  Compte Fondateur Illimité • Zéro facturation
+                  Compte Administrateur Illimité • Zéro facturation
                 </p>
                 <p className="text-[11px] text-slate-500 pt-1">
-                  Bénéficiaire des encaissements SaaS : Wave <strong>78 472 29 51</strong>
+                  Bénéficiaire des encaissements SaaS : Compte Wave Administrateur
                 </p>
               </div>
             ) : (
@@ -587,21 +587,23 @@ export const SubscriptionManager = () => {
                   )}
                 </div>
 
-                {/* Admin Platform Beneficiary Transparency Box */}
-                <div className="p-3 rounded-2xl bg-amber-50/90 border border-amber-200/80 text-xs text-amber-950 flex items-center justify-between shadow-2xs">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-base shrink-0">👑</span>
+                {/* Sécurité et Confidentialité de la facturation */}
+                <div className="p-3.5 rounded-2xl bg-slate-50/90 border border-slate-200/90 text-xs text-slate-800 flex items-center justify-between shadow-2xs">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-500/20 shadow-xs">
+                      <ShieldCheck className="w-4 h-4" />
+                    </div>
                     <div className="min-w-0">
-                      <span className="font-extrabold block text-amber-950 truncate">
-                        Bénéficiaire officiel de l'abonnement SaaS :
+                      <span className="font-extrabold block text-slate-900 truncate">
+                        Bénéficiaire : Appointfy Technologies
                       </span>
-                      <span className="text-[11px] text-amber-800 font-medium truncate block">
-                        Mahmoud Ndiaye (Fondateur Appointfy)
+                      <span className="text-[11px] text-slate-500 font-medium truncate block">
+                        Facturation SaaS sécurisée • Compte Entreprise Vérifié
                       </span>
                     </div>
                   </div>
-                  <span className="font-mono font-bold text-amber-900 bg-white px-2.5 py-1 rounded-lg border border-amber-300 text-xs shrink-0 ml-2">
-                    78 472 29 51
+                  <span className="font-mono font-black text-emerald-700 bg-white px-2.5 py-1 rounded-lg border border-slate-200 text-[10px] tracking-wider shrink-0 ml-2 uppercase">
+                    🔒 SSL 256-bit
                   </span>
                 </div>
 
@@ -769,7 +771,7 @@ export const SubscriptionManager = () => {
               Assistance dédiée aux salons inscrits
             </h4>
             <p className="text-[11px] text-emerald-800">
-              Une question sur votre facturation ou votre paiement Wave ? Écrivez au <strong className="font-mono">+221 78 472 29 51</strong>
+              Une question sur votre facturation ou votre abonnement ? L'équipe support Appointfy est à votre écoute 7j/7.
             </p>
           </div>
         </div>

@@ -1058,7 +1058,7 @@ export const SettingsManager = ({ defaultSection }) => {
               <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-950 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <strong className="block font-bold text-emerald-900">Support VIP WhatsApp Salons</strong>
-                  <span className="text-[11px] text-emerald-800">Numéro direct : +221 78 472 29 51</span>
+                  <span className="text-[11px] text-emerald-800">Équipe dédiée aux salons partenaires • Réponse rapide</span>
                 </div>
                 <a
                   href={`https://wa.me/221784722951?text=${encodeURIComponent(`Bonjour Appointfy, je suis le salon ${salon?.name || ''} et j'ai besoin d'aide.`)}`}
