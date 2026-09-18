@@ -134,31 +134,19 @@ const AppContent = () => {
                 {/* Droite : Boutons d'Action Pro (Installer App + Notifications) */}
                 <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
                   
-                  {/* Bouton 1 : Télécharger / Installer l'Application (PWA) */}
-                  <button
-                    type="button"
-                    onClick={installApp}
-                    className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs border ${
-                      isInstalled
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                        : 'bg-gradient-to-r from-pink-600 to-rose-600 text-white hover:from-pink-700 hover:to-rose-700 border-transparent shadow-pink-200 hover:scale-[1.02]'
-                    }`}
-                    title={isInstalled ? "Application installée sur votre appareil" : "Installer Appointfy comme une application mobile"}
-                  >
-                    {isInstalled ? (
-                      <>
-                        <Check className="w-3.5 h-3.5 text-emerald-600" />
-                        <span className="hidden sm:inline">App Installée</span>
-                        <span className="sm:hidden">Installée</span>
-                      </>
-                    ) : (
-                      <>
-                        <Download className="w-3.5 h-3.5 animate-bounce" />
-                        <span className="hidden sm:inline">Installer l'App</span>
-                        <span className="sm:hidden">Installer</span>
-                      </>
-                    )}
-                  </button>
+                  {/* Bouton 1 : Télécharger / Installer l'Application (PWA) - Masqué une fois installée */}
+                  {!isInstalled && (
+                    <button
+                      type="button"
+                      onClick={installApp}
+                      className="px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs border bg-gradient-to-r from-pink-600 to-rose-600 text-white hover:from-pink-700 hover:to-rose-700 border-transparent shadow-pink-200 hover:scale-[1.02]"
+                      title="Installer Appointfy comme une application mobile"
+                    >
+                      <Download className="w-3.5 h-3.5 animate-bounce" />
+                      <span className="hidden sm:inline">Installer l'App</span>
+                      <span className="sm:hidden">Installer</span>
+                    </button>
+                  )}
 
                   {/* Bouton 2 : Activer les Notifications et Alertes Sonores */}
                   <button
