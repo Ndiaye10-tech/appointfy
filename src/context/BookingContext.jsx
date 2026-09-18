@@ -1155,10 +1155,15 @@ export const BookingProvider = ({ children }) => {
     const remainingBalance = Math.max(0, price - depositPaid);
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
     const dateFormatted = selectedDateStr || selectedDate;
+    const salonCountry = (salon?.country || 'SN').toUpperCase();
+    const paymentProvider = salonCountry === 'CI' ? 'paystack' : (paymentMethod.toLowerCase().includes('wave') ? 'wave' : 'geniuspay');
 
     const pendingItem = {
       id: newId,
       salon_id: salon.id || null,
+      country: salonCountry,
+      currency: 'FCFA',
+      payment_provider: paymentProvider,
       client_name: clientInfo.name,
       client_phone: clientInfo.phone,
       service_id: selectedService?.id || null,
@@ -1217,9 +1222,15 @@ export const BookingProvider = ({ children }) => {
     const price = Number(selectedService?.price) || 0;
     const depositPaid = Math.max(0, Number(selectedService?.deposit) || 0);
     const remainingBalance = Math.max(0, price - depositPaid);
+    const salonCountry = (salon?.country || 'SN').toUpperCase();
+    const paymentProvider = salonCountry === 'CI' ? 'paystack' : (paymentMethod.toLowerCase().includes('wave') ? 'wave' : 'geniuspay');
 
     const confirmedBooking = {
       id: appointmentId,
+      salonId: salon.id || null,
+      country: salonCountry,
+      currency: 'FCFA',
+      paymentProvider: paymentProvider,
       clientName: clientInfo.name,
       clientPhone: clientInfo.phone,
       serviceId: selectedService?.id || 'custom',
@@ -1257,6 +1268,10 @@ export const BookingProvider = ({ children }) => {
         .update({
           status: 'confirmed',
           expires_at: null,
+          confirmed_at: new Date().toISOString(),
+          country: salonCountry,
+          currency: 'FCFA',
+          payment_provider: paymentProvider,
           practitioner_name: selectedPractitioner?.name || null,
           payment_method: paymentMethod,
           transaction_ref: ref,
@@ -1319,10 +1334,17 @@ export const BookingProvider = ({ children }) => {
       notifyNewBooking(newBooking);
     }
 
+    const salonCountry = (salon?.country || 'SN').toUpperCase();
+    const paymentProvider = salonCountry === 'CI' ? 'paystack' : (paymentMethod.toLowerCase().includes('wave') ? 'wave' : 'sur_place');
+
     try {
       await supabase.from('appointments').insert([{
         id: newId,
         salon_id: salon.id || null,
+        country: salonCountry,
+        currency: 'FCFA',
+        payment_provider: paymentProvider,
+        confirmed_at: new Date().toISOString(),
         client_name: newBooking.clientName,
         client_phone: newBooking.clientPhone,
         service_id: selectedService?.id || null,
@@ -1357,6 +1379,7 @@ export const BookingProvider = ({ children }) => {
     const remainingBalance = Math.max(0, price - depositPaid);
 
     const cleanPhone = data.clientPhone.startsWith('+') ? data.clientPhone : '+221 ' + data.clientPhone;
+    const salonCountry = (salon?.country || 'SN').toUpperCase();
 
     const today = new Date();
     const todayISO = today.toISOString().split('T')[0];
@@ -1402,6 +1425,10 @@ export const BookingProvider = ({ children }) => {
       await supabase.from('appointments').insert([{
         id: newId,
         salon_id: salon.id || null,
+        country: salonCountry,
+        currency: 'FCFA',
+        payment_provider: 'manual',
+        confirmed_at: new Date().toISOString(),
         client_name: newAppointment.clientName,
         client_phone: newAppointment.clientPhone,
         service_id: newAppointment.serviceId !== 'custom' ? newAppointment.serviceId : null,
