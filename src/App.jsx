@@ -82,7 +82,7 @@ const AppContent = () => {
                   className="fixed inset-0 bg-slate-950/50 backdrop-blur-xs animate-in fade-in"
                   onClick={() => setMobileSidebarOpen(false)}
                 />
-                <div className="relative z-10 w-72 max-w-[85vw] h-full shadow-2xl animate-in slide-in-from-left duration-200">
+                <div className="relative z-10 w-72 max-w-[85vw] h-full h-[100dvh] bg-white shadow-2xl animate-in slide-in-from-left duration-200 flex flex-col overflow-hidden">
                   <SalonSidebar
                     salonTab={salonTab}
                     setSalonTab={setSalonTab}

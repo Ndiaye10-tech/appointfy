@@ -14,7 +14,8 @@ import {
   Scissors,
   Boxes,
   ShieldCheck,
-  Package
+  Package,
+  X
 } from 'lucide-react';
 import { BrandLogo } from '../common/BrandLogo';
 import { useBooking } from '../../context/BookingContext';
@@ -80,13 +81,23 @@ export const SalonSidebar = ({
   const showcaseUrl = `${origin}/?salon=${salon?.slug || 'mon-salon'}`;
 
   return (
-    <aside className="w-64 bg-white border-r border-slate-200/80 flex flex-col justify-between h-full min-h-screen p-4 select-none shrink-0">
+    <aside className="w-full lg:w-64 bg-white border-r border-slate-200/80 flex flex-col justify-between h-full overflow-y-auto overscroll-contain p-4 select-none shrink-0">
       
       {/* Top: Brand & Salon identity */}
       <div className="space-y-4">
-        {/* Logo Appointfy */}
+        {/* Logo Appointfy + Bouton Fermer Mobile */}
         <div className="px-2 py-1 flex items-center justify-between">
           <BrandLogo />
+          {onCloseMobile && (
+            <button
+              type="button"
+              onClick={onCloseMobile}
+              className="lg:hidden p-1.5 -mr-1 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer"
+              aria-label="Fermer le menu"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
         </div>
 
         {/* Salon Card snippet */}
@@ -198,7 +209,7 @@ export const SalonSidebar = ({
       </div>
 
       {/* Bottom: Help & Logout */}
-      <div className="pt-4 border-t border-slate-100 space-y-1">
+      <div className="pt-4 border-t border-slate-100 space-y-1 shrink-0 mt-4 pb-8 lg:pb-0">
         {/* Support WhatsApp Salons Inscrits */}
         <a
           href={`https://wa.me/221784722951?text=${encodeURIComponent(`Bonjour Appointfy, je suis le salon ${salon?.name || ''} et j'ai besoin d'aide pour mon salon.`)}`}
