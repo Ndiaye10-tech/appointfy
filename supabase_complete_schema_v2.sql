@@ -37,8 +37,8 @@ ALTER TABLE public.appointments
 ADD COLUMN IF NOT EXISTS price NUMERIC DEFAULT 0,
 ADD COLUMN IF NOT EXISTS deposit_paid NUMERIC DEFAULT 0,
 ADD COLUMN IF NOT EXISTS remaining_balance NUMERIC DEFAULT 0,
-ADD COLUMN IF NOT EXISTS payment_method TEXT DEFAULT 'Wave',
-ADD COLUMN IF NOT EXISTS payment_provider TEXT DEFAULT 'wave',
+ADD COLUMN IF NOT EXISTS payment_method TEXT, -- 'Wave' (SN) ou 'Paystack'/'Orange Money'/'MTN'/'Moov' (CI)
+ADD COLUMN IF NOT EXISTS payment_provider TEXT, -- 'wave' (Sénégal 🇸🇳) ou 'paystack' (Côte d'Ivoire 🇨🇮)
 ADD COLUMN IF NOT EXISTS duration TEXT DEFAULT '45 min',
 ADD COLUMN IF NOT EXISTS practitioner_name TEXT;
 
@@ -56,7 +56,8 @@ CREATE TABLE IF NOT EXISTS public.subscription_payments (
     salon_name TEXT,
     amount NUMERIC DEFAULT 9900,
     currency TEXT DEFAULT 'FCFA',
-    payment_provider TEXT DEFAULT 'wave',
+    payment_provider TEXT, -- 'wave' pour le Sénégal (🇸🇳), 'paystack' pour la Côte d'Ivoire (🇨🇮)
+    payment_method TEXT,   -- 'Wave', 'Paystack', 'Orange Money', 'MTN', 'Moov', 'Carte CB'
     transaction_ref TEXT,
     payer_phone TEXT,
     period_days INT DEFAULT 30,
@@ -192,10 +193,10 @@ BEGIN
        OR ((subscription_status = 'trial' OR subscription_status IS NULL) AND trial_ends_at <= NOW())
        OR (subscription_status = 'active' AND subscription_expires_at <= NOW());
 
-    -- 4. Chiffre d'affaires SaaS RÉEL (strictement encaissé dans subscription_payments)
+    -- 4. Chiffre d'affaires SaaS RÉEL (encaissé dans subscription_payments via Wave 🇸🇳 ou Paystack 🇨🇮)
     SELECT COALESCE(SUM(amount), 0) INTO v_total_revenue_saas 
     FROM public.subscription_payments 
-    WHERE status = 'success';
+    WHERE status IN ('success', 'completed');
 
     -- 5. Volume global des réservations et acomptes collectés pour les salons
     SELECT 
@@ -348,7 +349,7 @@ SET
     trial_ends_at = COALESCE(trial_ends_at, created_at + INTERVAL '14 days', NOW() + INTERVAL '14 days'),
     subscription_expires_at = NULL
 WHERE id NOT IN (
-    SELECT DISTINCT salon_id FROM public.subscription_payments WHERE status = 'success' AND salon_id IS NOT NULL
+    SELECT DISTINCT salon_id FROM public.subscription_payments WHERE status IN ('success', 'completed') AND salon_id IS NOT NULL
 ) AND (subscription_status = 'active' OR subscription_status IS NULL);
 
 -- ==============================================================================

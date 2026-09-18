@@ -25,7 +25,8 @@ CREATE TABLE IF NOT EXISTS public.subscription_payments (
     salon_name TEXT,
     amount NUMERIC DEFAULT 9900,
     currency TEXT DEFAULT 'FCFA',
-    payment_provider TEXT DEFAULT 'wave',
+    payment_provider TEXT, -- 'wave' (Sénégal 🇸🇳) ou 'paystack' (Côte d'Ivoire 🇨🇮)
+    payment_method TEXT,   -- 'Wave', 'Paystack', 'Orange Money', 'MTN', 'Moov', 'Carte CB'
     transaction_ref TEXT,
     payer_phone TEXT,
     period_days INT DEFAULT 30,
@@ -80,10 +81,10 @@ BEGIN
        OR ((subscription_status = 'trial' OR subscription_status IS NULL) AND trial_ends_at <= NOW())
        OR (subscription_status = 'active' AND subscription_expires_at <= NOW());
 
-    -- Chiffre d'affaires SaaS réel (strictement la somme des paiements réussis)
+    -- Chiffre d'affaires SaaS réel (encaissé via Wave 🇸🇳 ou Paystack 🇨🇮)
     SELECT COALESCE(SUM(amount), 0) INTO v_total_revenue_saas 
     FROM public.subscription_payments 
-    WHERE status = 'success';
+    WHERE status IN ('success', 'completed');
 
     SELECT 
         COUNT(*), 
@@ -279,7 +280,7 @@ SET
     trial_ends_at = COALESCE(trial_ends_at, created_at + INTERVAL '14 days', NOW() + INTERVAL '14 days'),
     subscription_expires_at = NULL
 WHERE id NOT IN (
-    SELECT DISTINCT salon_id FROM public.subscription_payments WHERE status = 'success' AND salon_id IS NOT NULL
+    SELECT DISTINCT salon_id FROM public.subscription_payments WHERE status IN ('success', 'completed') AND salon_id IS NOT NULL
 ) AND (subscription_status = 'active' OR subscription_status IS NULL);
 
 -- 8. ACTUALISER LE CACHE DU SCHÉMA

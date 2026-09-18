@@ -152,17 +152,24 @@ export const SubscriptionManager = () => {
     const baseDate = isExpired ? new Date() : expiresAtDate;
     const newExpiresAt = new Date(baseDate.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
+    const isCI = salonCountry === 'CI';
+    const effectiveProvider = isCI ? 'paystack' : 'wave';
+    const effectiveMethod = methodUsed || paymentMethod || (isCI ? 'Paystack' : 'Wave');
+
     const paymentRecord = {
       id: 'SUB-' + Math.floor(100000 + Math.random() * 900000),
       salon_id: salon.id,
       salon_name: salon.name,
       amount: subscriptionPrice,
-      currency: 'XOF',
-      payment_method: methodUsed || paymentMethod,
+      currency: 'FCFA',
+      payment_provider: effectiveProvider,
+      payment_method: effectiveMethod,
       transaction_ref: reference || ('GP-SUB-' + Date.now()),
+      period_days: 30,
       period_start: baseDate.toISOString(),
       period_end: newExpiresAt,
-      status: 'completed',
+      status: 'success',
+      notes: isCI ? 'Abonnement SaaS réglé via Paystack CI (Wave / OM / MoMo / CB)' : 'Abonnement SaaS réglé via Wave Sénégal',
       created_at: new Date().toISOString()
     };
 

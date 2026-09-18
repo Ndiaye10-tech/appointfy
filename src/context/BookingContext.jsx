@@ -2110,8 +2110,8 @@ export const BookingProvider = ({ children }) => {
       });
 
       const totalDeposits = apptsList.reduce((acc, a) => acc + (Number(a.deposit_paid) || 0), 0);
-      // Chiffre d'affaires SaaS réel encaissé (strictement la somme des paiements réussis)
-      const totalSaasRevenue = paysList.filter(p => p.status === 'success').reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
+      // Chiffre d'affaires SaaS réel encaissé (strictement la somme des paiements réussis Wave 🇸🇳 ou Paystack 🇨🇮)
+      const totalSaasRevenue = paysList.filter(p => p.status === 'success' || p.status === 'completed').reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
 
       const todayStr = new Date().toISOString().split('T')[0];
       const apptsToday = apptsList.filter(a => a.created_at && a.created_at.startsWith(todayStr)).length;
