@@ -34,12 +34,8 @@ export const isGeniusPayConfigured = () => {
 };
 
 export const COUNTRY_PHONE_CONFIG = {
-  SN: { code: '+221', digits: 9, name: 'Sénégal', flag: '🇸🇳' },
-  CI: { code: '+225', digits: 10, name: "Côte d'Ivoire", flag: '🇨🇮' },
-  ML: { code: '+223', digits: 8, name: 'Mali', flag: '🇲🇱' },
-  BJ: { code: '+229', digits: 8, name: 'Bénin', flag: '🇧🇯' },
-  TG: { code: '+228', digits: 8, name: 'Togo', flag: '🇹🇬' },
-  BF: { code: '+226', digits: 8, name: 'Burkina Faso', flag: '🇧🇫' }
+  SN: { code: '+221', digits: 9, name: 'Sénégal', flag: 'SN', placeholder: '77 123 45 67' },
+  CI: { code: '+225', digits: 10, name: "Côte d'Ivoire", flag: 'CI', placeholder: '07 12 34 56 78' }
 };
 
 /**
@@ -70,6 +66,7 @@ export const createGeniusPayment = async ({
   customerEmail,
   description = 'Acompte réservation salon',
   paymentMethod, // 'Wave', 'Orange Money', 'MTN MoMo', 'Moov Money', 'Carte Bancaire', etc.
+  otp,
   country = 'SN',
   metadata = {},
   successUrl,
@@ -86,6 +83,7 @@ export const createGeniusPayment = async ({
     customerEmail,
     description: description.slice(0, 500),
     paymentMethod,
+    otp,
     country: safeCountry,
     metadata: {
       ...metadata,

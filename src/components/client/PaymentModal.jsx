@@ -32,37 +32,10 @@ import confetti from 'canvas-confetti';
 // Catalogue des opérateurs supportés par pays
 const OPERATORS_BY_COUNTRY = {
   SN: [
-    { id: 'Wave', name: 'Wave Sénégal', shortName: 'Wave', desc: 'Débit direct instantané sans frais', color: '#1DC3FF', textColor: '#000', badge: 'Recommandé' },
-    { id: 'Orange Money', name: 'Orange Money', shortName: 'Orange Money', desc: 'Validation push USSD mobile', color: '#FF7900', textColor: '#FFF' }
+    { id: 'Wave', name: 'Wave Sénégal', shortName: 'Wave', desc: 'Débit direct instantané 100% sans frais', color: '#1DC3FF', textColor: '#000', badge: 'Recommandé' }
   ],
   CI: [
-    { id: 'Wave', name: 'Wave Côte d\'Ivoire', shortName: 'Wave CI', desc: 'Débit direct instantané', color: '#1DC3FF', textColor: '#000', badge: 'Populaire' },
-    { id: 'Orange Money', name: 'Orange Money CI', shortName: 'Orange Money', desc: 'Push OTP ou *144#', color: '#FF7900', textColor: '#FFF' },
-    { id: 'MTN MoMo', name: 'MTN Mobile Money', shortName: 'MTN MoMo', desc: 'Validation push mobile MTN', color: '#FFCC00', textColor: '#000' },
-    { id: 'Moov Money', name: 'Moov Money CI', shortName: 'Moov Money', desc: 'Validation directe Moov', color: '#0066B3', textColor: '#FFF' },
-    { id: 'Carte Bancaire', name: 'Carte Bancaire', shortName: 'Carte Bancaire', desc: 'Visa / Mastercard sécurisé', color: '#2563EB', textColor: '#FFF' }
-  ],
-  ML: [
-    { id: 'Orange Money', name: 'Orange Money Mali', shortName: 'Orange Money', desc: 'Validation rapide *144#', color: '#FF7900', textColor: '#FFF', badge: 'Recommandé' },
-    { id: 'Moov Money', name: 'Moov Money (Malitel)', shortName: 'Moov Money', desc: 'Validation push Moov', color: '#0066B3', textColor: '#FFF' },
-    { id: 'Wave', name: 'Wave Mali', shortName: 'Wave Mali', desc: 'Paiement direct Wave', color: '#1DC3FF', textColor: '#000' },
-    { id: 'Carte Bancaire', name: 'Carte Bancaire', shortName: 'Carte Bancaire', desc: 'Visa / Mastercard', color: '#2563EB', textColor: '#FFF' }
-  ],
-  BJ: [
-    { id: 'MTN MoMo', name: 'MTN MoMo Bénin', shortName: 'MTN MoMo', desc: 'Validation push instantanée', color: '#FFCC00', textColor: '#000', badge: 'Populaire' },
-    { id: 'Moov Money', name: 'Moov Money Bénin', shortName: 'Moov Flooz', desc: 'Validation push Flooz', color: '#0066B3', textColor: '#FFF' },
-    { id: 'Wave', name: 'Wave / Celtiis Cash', shortName: 'Wave Bénin', desc: 'Paiement mobile instantané', color: '#1DC3FF', textColor: '#000' },
-    { id: 'Carte Bancaire', name: 'Carte Bancaire', shortName: 'Carte Bancaire', desc: 'Visa / Mastercard', color: '#2563EB', textColor: '#FFF' }
-  ],
-  TG: [
-    { id: 'Moov Money', name: 'Moov Money (Flooz)', shortName: 'Moov Flooz', desc: 'Validation Moov Togo', color: '#0066B3', textColor: '#FFF', badge: 'Populaire' },
-    { id: 'T-Money', name: 'T-Money Togo', shortName: 'T-Money', desc: 'Paiement mobile Togo', color: '#008751', textColor: '#FFF' },
-    { id: 'Carte Bancaire', name: 'Carte Bancaire', shortName: 'Carte Bancaire', desc: 'Visa / Mastercard', color: '#2563EB', textColor: '#FFF' }
-  ],
-  BF: [
-    { id: 'Orange Money', name: 'Orange Money BF', shortName: 'Orange Money', desc: 'Validation par code OTP', color: '#FF7900', textColor: '#FFF', badge: 'Recommandé' },
-    { id: 'Moov Money', name: 'Moov Money BF', shortName: 'Moov Money', desc: 'Validation directe Moov', color: '#0066B3', textColor: '#FFF' },
-    { id: 'Carte Bancaire', name: 'Carte Bancaire', shortName: 'Carte Bancaire', desc: 'Visa / Mastercard', color: '#2563EB', textColor: '#FFF' }
+    { id: 'Paystack', name: 'Paystack Côte d\'Ivoire', shortName: 'Paystack', desc: 'Wave, Orange Money, MTN, Moov & Carte CB', color: '#00C3F7', textColor: '#000', badge: 'Multi-Paiement' }
   ]
 };
 
@@ -506,10 +479,8 @@ export const PaymentModal = () => {
                               <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
                                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14.5h-2v-2h2v2zm0-4h-2V7h2v5.5z"/>
                               </svg>
-                            ) : method.id === 'Carte Bancaire' ? (
-                              <CreditCard className="w-5 h-5" />
                             ) : (
-                              <span>{method.shortName.slice(0, 2).toUpperCase()}</span>
+                              <CreditCard className="w-5 h-5" />
                             )}
                           </div>
 
@@ -541,33 +512,31 @@ export const PaymentModal = () => {
               </div>
 
               {/* Phone Verification Input */}
-              {paymentMethod !== 'Carte Bancaire' ? (
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
-                    <span>Numéro {paymentMethod} pour le débit :</span>
-                    <span className="text-[11px] text-pink-600 font-bold">Compte {paymentMethod}</span>
-                  </label>
-                  <div className="relative">
-                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-xs font-bold text-slate-700 pr-2.5 border-r border-slate-200">
-                      <CountryFlag countryCode={phoneConfig.flag} className="w-4 h-3 rounded-xs object-cover" />
-                      <span>{phoneConfig.code}</span>
-                    </div>
-                    <input
-                      type="tel"
-                      value={customerPhone}
-                      onChange={(e) => setCustomerPhone(e.target.value)}
-                      placeholder={phoneConfig.placeholder || '77 123 45 67'}
-                      className="w-full pl-24 pr-4 py-3 rounded-xl border border-slate-200 text-sm font-mono font-bold focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 bg-slate-50/40"
-                      required
-                    />
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
+                  <span>{paymentMethod === 'Wave' ? 'Numéro Wave pour le débit :' : 'Numéro mobile de contact :'}</span>
+                  <span className="text-[11px] text-pink-600 font-bold">{paymentMethod === 'Wave' ? 'Compte Wave' : 'Mobile / WhatsApp'}</span>
+                </label>
+                <div className="relative">
+                  <div className="absolute left-3.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-xs font-bold text-slate-700 pr-2.5 border-r border-slate-200">
+                    <CountryFlag code={phoneConfig.flag} className="w-4 h-3 rounded-xs object-cover" />
+                    <span>{phoneConfig.code}</span>
                   </div>
+                  <input
+                    type="tel"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    placeholder={phoneConfig.placeholder || '77 123 45 67'}
+                    className="w-full pl-24 pr-4 py-3 rounded-xl border border-slate-200 text-sm font-mono font-bold focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 bg-slate-50/40"
+                    required
+                  />
                 </div>
-              ) : (
-                <div className="p-3 bg-blue-50/70 border border-blue-200 rounded-xl text-xs text-blue-900 flex items-center gap-2">
-                  <CreditCard className="w-4 h-4 text-blue-600 shrink-0" />
-                  <span>Vous serez redirigée vers la passerelle sécurisée Visa / Mastercard certifiée PCI-DSS.</span>
-                </div>
-              )}
+                {paymentMethod !== 'Wave' && (
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    Le guichet Paystack CI vous permettra de régler par Wave, Orange Money, MTN, Moov ou Carte bancaire.
+                  </p>
+                )}
+              </div>
 
               {/* Main Submit Action Button */}
               <button
@@ -576,7 +545,7 @@ export const PaymentModal = () => {
                 className="w-full py-4 px-5 rounded-2xl font-black text-sm shadow-lg flex items-center justify-center gap-2.5 transition-all cursor-pointer transform active:scale-[0.99] bg-pink-600 hover:bg-pink-700 text-white shadow-pink-600/25"
               >
                 <Smartphone className="w-5 h-5 shrink-0" />
-                <span>Payer l'acompte de {formatFCFA(depositAmount)} avec {paymentMethod}</span>
+                <span>Payer l'acompte de {formatFCFA(depositAmount)} avec {paymentMethod === 'Wave' ? 'Wave' : 'Paystack CI'}</span>
                 <ArrowRight className="w-5 h-5 shrink-0" />
               </button>
 
@@ -643,13 +612,13 @@ export const PaymentModal = () => {
                   <h4 className="font-black text-xs sm:text-sm">
                     {paymentMethod === 'Wave'
                       ? 'Validez le paiement sur votre application Wave'
-                      : `Finalisez votre paiement sur la page sécurisée ${paymentMethod}`}
+                      : 'Finalisez votre paiement sur le guichet Paystack'}
                   </h4>
                 </div>
                 <p className="text-xs text-amber-800/90 pl-8 leading-relaxed">
                   {paymentMethod === 'Wave'
                     ? <>Une invite de paiement de <strong>{formatFCFA(depositAmount)}</strong> a été ouverte. Confirmez le paiement sur Wave.</>
-                    : <>La passerelle sécurisée Genius Pay s'est ouverte pour régler les <strong>{formatFCFA(depositAmount)}</strong> via {paymentMethod}.</>
+                    : <>Le guichet sécurisé Paystack s'est ouvert pour régler les <strong>{formatFCFA(depositAmount)}</strong> (Wave CI, Orange Money, MTN MoMo, Moov Money ou Carte bancaire).</>
                   }
                 </p>
               </div>

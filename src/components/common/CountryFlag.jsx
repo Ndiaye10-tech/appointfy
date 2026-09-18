@@ -4,9 +4,10 @@ import React, { useState } from 'react';
  * Composant de drapeaux nationaux ultra-réalistes et nets pour l'Afrique de l'Ouest.
  * Résout le problème de Windows qui affiche des lettres de code ISO (ex: "SN") au lieu de vrais drapeaux.
  */
-export const CountryFlag = ({ code = 'SN', className = 'w-7 h-5 rounded object-cover shadow-2xs border border-slate-200' }) => {
+export const CountryFlag = ({ code, countryCode, className = 'w-7 h-5 rounded object-cover shadow-2xs border border-slate-200' }) => {
   const [imgError, setImgError] = useState(false);
-  const normalized = (code || 'SN').toUpperCase();
+  const rawCode = code || countryCode || 'SN';
+  const normalized = (rawCode.includes('🇸🇳') ? 'SN' : rawCode.includes('🇨🇮') ? 'CI' : rawCode).toUpperCase();
 
   // Si l'image CDN est disponible, affichage haute résolution avec coins arrondis
   if (!imgError) {

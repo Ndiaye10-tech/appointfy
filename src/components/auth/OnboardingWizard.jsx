@@ -628,6 +628,7 @@ export const OnboardingWizard = ({
                       className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 shadow-2xs ${method.color}`}
                     >
                       {method.id === 'wave' && '🐧'}
+                      {method.id === 'paystack' && '💳'}
                       {method.id === 'orange' && '🟧'}
                       {method.id === 'mtn' && '🟨'}
                       {method.id === 'moov' && '🔶'}

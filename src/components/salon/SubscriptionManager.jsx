@@ -33,37 +33,10 @@ import confetti from 'canvas-confetti';
 // Catalogue des opérateurs supportés par pays pour le règlement de l'abonnement
 const OPERATORS_BY_COUNTRY = {
   SN: [
-    { id: 'Wave', name: 'Wave Sénégal', desc: 'Débit direct instantané sans frais', color: '#1DC3FF', textColor: '#000', badge: 'Recommandé' },
-    { id: 'Orange Money', name: 'Orange Money', desc: 'Validation par push USSD mobile', color: '#FF7900', textColor: '#FFF' }
+    { id: 'Wave', name: 'Wave Sénégal', desc: 'Débit direct instantané 100% sans frais', color: '#1DC3FF', textColor: '#000', badge: 'Recommandé' }
   ],
   CI: [
-    { id: 'Wave', name: 'Wave Côte d\'Ivoire', desc: 'Débit direct instantané', color: '#1DC3FF', textColor: '#000' },
-    { id: 'Orange Money', name: 'Orange Money CI', desc: 'Push OTP ou *144#', color: '#FF7900', textColor: '#FFF' },
-    { id: 'MTN MoMo', name: 'MTN MoMo', desc: 'Push Mobile Money MTN', color: '#FFCC00', textColor: '#000' },
-    { id: 'Moov Money', name: 'Moov Money CI', desc: 'Validation directe Moov', color: '#0066B3', textColor: '#FFF' },
-    { id: 'Carte Bancaire', name: 'Carte Bancaire', desc: 'Visa / Mastercard', color: '#2563EB', textColor: '#FFF' }
-  ],
-  ML: [
-    { id: 'Orange Money', name: 'Orange Money Mali', desc: 'Validation *144#', color: '#FF7900', textColor: '#FFF' },
-    { id: 'Moov Money', name: 'Moov Money', desc: 'Validation push Moov', color: '#0066B3', textColor: '#FFF' },
-    { id: 'Wave', name: 'Wave Mali', desc: 'Paiement direct Wave', color: '#1DC3FF', textColor: '#000' },
-    { id: 'Carte Bancaire', name: 'Carte Bancaire', desc: 'Visa / Mastercard', color: '#2563EB', textColor: '#FFF' }
-  ],
-  BJ: [
-    { id: 'MTN MoMo', name: 'MTN MoMo Bénin', desc: 'Validation instantanée MTN', color: '#FFCC00', textColor: '#000' },
-    { id: 'Moov Money', name: 'Moov Money Bénin', desc: 'Validation push Flooz', color: '#0066B3', textColor: '#FFF' },
-    { id: 'Wave', name: 'Wave Bénin', desc: 'Paiement direct Wave', color: '#1DC3FF', textColor: '#000' },
-    { id: 'Carte Bancaire', name: 'Carte Bancaire', desc: 'Visa / Mastercard', color: '#2563EB', textColor: '#FFF' }
-  ],
-  TG: [
-    { id: 'Moov Money', name: 'Moov Money (Flooz)', desc: 'Validation Moov Togo', color: '#0066B3', textColor: '#FFF' },
-    { id: 'T-Money', name: 'T-Money Togo', desc: 'Paiement mobile Togo', color: '#008751', textColor: '#FFF' },
-    { id: 'Carte Bancaire', name: 'Carte Bancaire', desc: 'Visa / Mastercard', color: '#2563EB', textColor: '#FFF' }
-  ],
-  BF: [
-    { id: 'Orange Money', name: 'Orange Money BF', desc: 'Validation par code OTP', color: '#FF7900', textColor: '#FFF' },
-    { id: 'Moov Money', name: 'Moov Money BF', desc: 'Validation directe Moov', color: '#0066B3', textColor: '#FFF' },
-    { id: 'Carte Bancaire', name: 'Carte Bancaire', desc: 'Visa / Mastercard', color: '#2563EB', textColor: '#FFF' }
+    { id: 'Paystack', name: 'Paystack Côte d\'Ivoire', desc: 'Wave, Orange Money, MTN, Moov & Carte CB', color: '#00C3F7', textColor: '#000', badge: 'Multi-Paiement' }
   ]
 };
 
@@ -564,10 +537,8 @@ export const SubscriptionManager = () => {
                                 <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
                                   <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14.5h-2v-2h2v2zm0-4h-2V7h2v5.5z"/>
                                 </svg>
-                              ) : method.id === 'Carte Bancaire' ? (
-                                <CreditCard className="w-4 h-4" />
                               ) : (
-                                <span>{method.id.slice(0, 2).toUpperCase()}</span>
+                                <CreditCard className="w-4 h-4" />
                               )}
                             </div>
                             <div className="min-w-0">
@@ -591,32 +562,30 @@ export const SubscriptionManager = () => {
                 </div>
 
                 {/* Phone input */}
-                {paymentMethod !== 'Carte Bancaire' ? (
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                      Numéro {paymentMethod} pour le prélèvement :
-                    </label>
-                    <div className="relative">
-                      <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-xs font-bold text-slate-600 pr-2 border-r border-slate-200">
-                        <CountryFlag countryCode={phoneConfig.flag} className="w-4 h-3 rounded-xs object-cover" />
-                        <span>{phoneConfig.code}</span>
-                      </div>
-                      <input
-                        type="tel"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        placeholder={phoneConfig.placeholder || '77 123 45 67'}
-                        className="w-full pl-24 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm font-mono font-bold focus:outline-pink-600"
-                        required
-                      />
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    {paymentMethod === 'Wave' ? 'Numéro Wave pour le prélèvement :' : 'Numéro mobile du salon :'}
+                  </label>
+                  <div className="relative">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-xs font-bold text-slate-600 pr-2 border-r border-slate-200">
+                      <CountryFlag code={phoneConfig.flag} className="w-4 h-3 rounded-xs object-cover" />
+                      <span>{phoneConfig.code}</span>
                     </div>
+                    <input
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder={phoneConfig.placeholder || '77 123 45 67'}
+                      className="w-full pl-24 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm font-mono font-bold focus:outline-pink-600"
+                      required
+                    />
                   </div>
-                ) : (
-                  <div className="p-3 bg-blue-50/80 border border-blue-200 rounded-xl text-xs text-blue-900 flex items-center gap-2">
-                    <CreditCard className="w-4 h-4 text-blue-600 shrink-0" />
-                    <span>Règlement direct par carte Visa / Mastercard via passerelle certifiée.</span>
-                  </div>
-                )}
+                  {paymentMethod !== 'Wave' && (
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      Le guichet Paystack CI vous permettra de régler par Wave, Orange Money, MTN, Moov ou Carte bancaire.
+                    </p>
+                  )}
+                </div>
 
                 {/* Admin Platform Beneficiary Transparency Box */}
                 <div className="p-3 rounded-2xl bg-amber-50/90 border border-amber-200/80 text-xs text-amber-950 flex items-center justify-between shadow-2xs">
@@ -641,7 +610,7 @@ export const SubscriptionManager = () => {
                   className="w-full py-3.5 px-4 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-extrabold text-xs shadow-md shadow-pink-600/20 flex items-center justify-center gap-2 transition-all cursor-pointer"
                 >
                   <CreditCard className="w-4 h-4" />
-                  <span>Confirmer et Payer 9 900 FCFA avec {paymentMethod}</span>
+                  <span>Confirmer et Payer 9 900 FCFA avec {paymentMethod === 'Wave' ? 'Wave' : 'Paystack CI'}</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
@@ -662,9 +631,14 @@ export const SubscriptionManager = () => {
                   <Smartphone className="w-7 h-7 animate-pulse" />
                 </div>
                 <div className="space-y-1">
-                  <h4 className="text-base font-black text-slate-900">Validation requise sur votre mobile</h4>
+                  <h4 className="text-base font-black text-slate-900">
+                    {paymentMethod === 'Wave' ? 'Validation requise sur votre mobile' : 'Validation sur le guichet Paystack'}
+                  </h4>
                   <p className="text-xs text-slate-600 max-w-xs mx-auto">
-                    Une page Genius Pay s'est ouverte. Validez le paiement de <strong>9 900 FCFA</strong> sur votre application {paymentMethod}.
+                    {paymentMethod === 'Wave'
+                      ? <>Une page Wave s'est ouverte. Validez le paiement de <strong>9 900 FCFA</strong> sur votre application Wave.</>
+                      : <>Le guichet Paystack s'est ouvert. Réglez les <strong>9 900 FCFA</strong> (Wave CI, Orange Money, MTN MoMo, Moov Money ou Carte bancaire).</>
+                    }
                   </p>
                 </div>
 
