@@ -468,21 +468,15 @@ export const PaymentModal = () => {
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
                           {/* Method Color Avatar */}
-                          <div
-                            className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-xs shrink-0 shadow-xs"
-                            style={{
-                              backgroundColor: method.color,
-                              color: method.textColor || '#FFF'
-                            }}
-                          >
-                            {method.id === 'Wave' ? (
-                              <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
-                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14.5h-2v-2h2v2zm0-4h-2V7h2v5.5z"/>
-                              </svg>
-                            ) : (
+                          {method.id === 'Wave' ? (
+                            <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 shadow-xs border border-sky-200">
+                              <img src="/wave-logo.png" alt="Wave" className="w-full h-full object-cover" />
+                            </div>
+                          ) : (
+                            <div className="w-10 h-10 rounded-xl bg-slate-900 text-sky-400 flex items-center justify-center shrink-0 shadow-xs border border-slate-800">
                               <CreditCard className="w-5 h-5" />
-                            )}
-                          </div>
+                            </div>
+                          )}
 
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5">
