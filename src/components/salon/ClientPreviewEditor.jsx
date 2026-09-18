@@ -418,7 +418,7 @@ export const ClientPreviewEditor = () => {
       name: newTeamMember.name.trim(),
       role: newTeamMember.role.trim() || 'Coiffeuse Styliste',
       description: (newTeamMember.description || '').trim(),
-      image: newTeamMember.image || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80'
+      image: ''
     };
     setFormData(prev => ({
       ...prev,
@@ -1265,35 +1265,6 @@ export const ClientPreviewEditor = () => {
                         />
                       </div>
 
-                      {/* Photo upload */}
-                      <div>
-                        <label className="block text-xs font-bold text-slate-700 mb-1">Photo du membre</label>
-                        <input
-                          ref={teamMemberInputRef}
-                          type="file"
-                          accept="image/*"
-                          onChange={handleTeamMemberImageUpload}
-                          className="hidden"
-                        />
-                        <div className="flex items-center gap-3">
-                          <button
-                            type="button"
-                            onClick={() => teamMemberInputRef.current?.click()}
-                            disabled={uploadingTeamMember}
-                            className="px-4 py-2 rounded-xl bg-white border border-pink-200 hover:bg-pink-50 text-pink-700 font-bold text-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-40"
-                          >
-                            {uploadingTeamMember ? <Loader2 className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
-                            <span>{uploadingTeamMember ? 'Envoi...' : 'Choisir une photo'}</span>
-                          </button>
-                          {newTeamMember.image && (
-                            <div className="flex items-center gap-2">
-                              <img src={newTeamMember.image} alt="Aperçu" className="w-10 h-10 rounded-xl object-cover border border-pink-200" />
-                              <span className="text-[11px] text-emerald-700 font-bold">✓ Photo prête</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
                       <div className="flex items-center justify-end gap-2 pt-2">
                         <button
                           type="button"
@@ -1317,7 +1288,9 @@ export const ClientPreviewEditor = () => {
                     {(formData.team || []).map((member) => (
                       <div key={member.id} className="p-4 rounded-2xl border border-slate-200 bg-slate-50/50 flex items-start justify-between gap-3">
                         <div className="flex items-start gap-3 min-w-0">
-                          <img src={member.image} alt={member.name} className="w-12 h-12 rounded-xl object-cover shrink-0 border border-slate-200" />
+                          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-pink-500 to-rose-600 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs">
+                            {member.name ? member.name.substring(0, 2).toUpperCase() : 'CO'}
+                          </div>
                           <div className="min-w-0">
                             <h4 className="font-extrabold text-slate-900 text-xs truncate">{member.name}</h4>
                             <p className="text-[11px] text-pink-600 font-bold truncate">{member.role}</p>
