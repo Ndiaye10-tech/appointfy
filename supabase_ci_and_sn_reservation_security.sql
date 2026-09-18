@@ -1,4 +1,4 @@
-﻿-- ==============================================================================
+-- ==============================================================================
 -- APPOINTFY : SÉCURISATION COMPLÈTE DES RÉSERVATIONS ET ACOMPTES EN BASE DE DONNÉES
 -- Compatible Sénégal (🇸🇳 Wave) & Côte d'Ivoire (🇨🇮 Paystack Multi-Opérateurs)
 -- À exécuter dans l'éditeur SQL de Supabase (Dashboard Supabase -> SQL Editor)
@@ -97,7 +97,8 @@ $$ LANGUAGE plpgsql;
 -- 6. VUE SÉCURISÉE DÉDIÉE AU DASHBOARD ET PLANNING DU SALON
 -- Garantit qu'AUCUNE réservation 'pending' ou 'expired' ne pollue l'agenda du salon.
 -- Seuls les rendez-vous payés ou confirmés sont visibles par le gérant.
-CREATE OR REPLACE VIEW public.salon_confirmed_appointments AS
+DROP VIEW IF EXISTS public.salon_confirmed_appointments CASCADE;
+CREATE VIEW public.salon_confirmed_appointments AS
 SELECT 
     id,
     salon_id,
