@@ -37,6 +37,8 @@ export const SettingsManager = ({ defaultSection }) => {
     setSoundVolume,
     soundPreset,
     setSoundPreset,
+    voiceEnabled,
+    setVoiceEnabled,
     pushPermission,
     requestPush,
     triggerTestAlert
@@ -47,7 +49,7 @@ export const SettingsManager = ({ defaultSection }) => {
   const handleTestSound = () => {
     setTestingSound(true);
     triggerTestAlert();
-    setTimeout(() => setTestingSound(false), 1200);
+    setTimeout(() => setTestingSound(false), 5500);
   };
 
 
@@ -676,36 +678,65 @@ export const SettingsManager = ({ defaultSection }) => {
                       </div>
                     </div>
 
-                    {/* Curseur de Volume */}
-                    <div className="space-y-1.5">
+                    {/* Curseur de Volume Boosté (Jusqu'à 150%) */}
+                    <div className="space-y-2 p-3.5 rounded-2xl bg-pink-50/50 border border-pink-100">
                       <div className="flex items-center justify-between text-xs font-bold">
-                        <span className="text-slate-700 flex items-center gap-1.5">
-                          {soundVolume === 0 ? <VolumeX className="w-3.5 h-3.5 text-slate-400" /> : <Volume2 className="w-3.5 h-3.5 text-pink-600" />}
-                          Volume sonore :
+                        <span className="text-slate-800 flex items-center gap-1.5">
+                          <Volume2 className="w-4 h-4 text-pink-600" />
+                          <span>Puissance Sonore :</span>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-pink-600 text-white font-black">
+                            {Math.round(soundVolume * 100)}% {soundVolume >= 1.3 ? '🔥 ULTRA FORT' : ''}
+                          </span>
                         </span>
-                        <span className="text-pink-600">{Math.round(soundVolume * 100)}%</span>
                       </div>
                       <input
                         type="range"
-                        min="0.1"
-                        max="1.0"
-                        step="0.05"
+                        min="0.5"
+                        max="1.5"
+                        step="0.1"
                         value={soundVolume}
                         onChange={(e) => setSoundVolume(Number(e.target.value))}
-                        className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-pink-600"
+                        className="w-full h-2.5 bg-pink-200 rounded-lg appearance-none cursor-pointer accent-pink-600"
                       />
+                      <div className="flex justify-between text-[10px] text-slate-500 font-semibold px-0.5">
+                        <span>50%</span>
+                        <span>100% (Normal)</span>
+                        <span>130%</span>
+                        <span className="text-pink-700 font-black">150% (Maxi-Salon)</span>
+                      </div>
                     </div>
 
-                    {/* Bouton de Test Sonore Immédiat */}
+                    {/* Toggle Annonce Vocale Parlée */}
+                    <div className="p-3.5 rounded-2xl bg-amber-50/60 border border-amber-200/70 flex items-center justify-between gap-3">
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-1.5 text-xs font-black text-slate-900">
+                          <span>🗣️ Annonce Vocale Parlée (Text-to-Speech)</span>
+                        </div>
+                        <p className="text-[11px] text-slate-600 leading-relaxed">
+                          Le téléphone énonce à voix haute : <em>« Nouveau rendez-vous pour [Cliente], Prestation [Soin], Date et Heure »</em>.
+                        </p>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                        <input
+                          type="checkbox"
+                          checked={voiceEnabled}
+                          onChange={(e) => setVoiceEnabled(e.target.checked)}
+                          className="sr-only peer"
+                        />
+                        <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-600"></div>
+                      </label>
+                    </div>
+
+                    {/* Bouton de Test Sonore & Vocal Immédiat */}
                     <div className="pt-2">
                       <button
                         type="button"
                         onClick={handleTestSound}
                         disabled={testingSound}
-                        className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-pink-50 hover:bg-pink-100 text-pink-700 border border-pink-200 font-bold text-xs inline-flex items-center justify-center gap-2 transition-all cursor-pointer shadow-2xs active:scale-98"
+                        className="w-full sm:w-auto px-5 py-3 rounded-xl bg-gradient-to-r from-pink-600 via-rose-600 to-amber-600 hover:from-pink-500 hover:to-amber-500 text-white font-black text-xs inline-flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md shadow-pink-500/25 active:scale-98"
                       >
-                        <Play className={`w-3.5 h-3.5 fill-pink-600 ${testingSound ? 'animate-ping' : ''}`} />
-                        <span>{testingSound ? 'Lecture en cours...' : '🔊 Tester la sonnerie maintenant'}</span>
+                        <Play className={`w-4 h-4 fill-white ${testingSound ? 'animate-ping' : ''}`} />
+                        <span>{testingSound ? '🔊 Diffusion en cours (Carillon + Voix 150%)...' : '🔊 Tester l\'alerte sonore & vocale (150%)'}</span>
                       </button>
                     </div>
                   </div>

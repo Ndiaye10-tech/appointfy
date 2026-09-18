@@ -21,20 +21,20 @@ const getAudioContext = () => {
  * Crée un compresseur dynamique pour maximiser le volume perçu (LOUDNESS)
  * sans saturation ni grésillement audio.
  */
-const createLoudMasterChain = (ctx, userVolume = 1.0) => {
-  // Limiteur / Compresseur professionnel
+const createLoudMasterChain = (ctx, userVolume = 1.5) => {
+  // Limiteur / Compresseur dynamique professionnel pour un son perçant sans grésillement
   const compressor = ctx.createDynamicsCompressor();
-  compressor.threshold.setValueAtTime(-15, ctx.currentTime);
-  compressor.knee.setValueAtTime(40, ctx.currentTime);
-  compressor.ratio.setValueAtTime(14, ctx.currentTime);
-  compressor.attack.setValueAtTime(0.002, ctx.currentTime);
+  compressor.threshold.setValueAtTime(-12, ctx.currentTime);
+  compressor.knee.setValueAtTime(30, ctx.currentTime);
+  compressor.ratio.setValueAtTime(16, ctx.currentTime);
+  compressor.attack.setValueAtTime(0.001, ctx.currentTime);
   compressor.release.setValueAtTime(0.2, ctx.currentTime);
 
-  // Gain maître poussé au maximum sans écrêtage
+  // Gain maître boosté à 130% - 150% de volume sonore
   const masterGain = ctx.createGain();
-  const safeVolume = Math.min(Math.max(userVolume, 0), 1.0);
-  // Multiplicateur pour booster le volume perçu
-  masterGain.gain.setValueAtTime(safeVolume * 1.5, ctx.currentTime);
+  const effectiveVolume = typeof userVolume === 'number' && userVolume > 0 ? userVolume : 1.5;
+  // Pousse le gain jusqu'à 1.5x (150% de puissance)
+  masterGain.gain.setValueAtTime(effectiveVolume * 1.5, ctx.currentTime);
 
   compressor.connect(masterGain);
   masterGain.connect(ctx.destination);
@@ -235,7 +235,7 @@ export const playCashRegister = (volume = 1.0) => {
 /**
  * Joue la sonnerie selon le preset sélectionné
  */
-export const playSoundPreset = (preset = 'chime', volume = 1.0) => {
+export const playSoundPreset = (preset = 'chime', volume = 1.5) => {
   getAudioContext();
 
   if (preset === 'cash') {
@@ -248,4 +248,90 @@ export const playSoundPreset = (preset = 'chime', volume = 1.0) => {
     playLoudChime(volume);
   }
 };
+
+/**
+ * ANNONCE VOCALE PARLÉE (Text-to-Speech) EN FRANÇAIS HAUTE PUISSANCE
+ * Prononce à voix haute et intelligible :
+ * "Attention ! Nouveau rendez-vous confirmé ! Prestation : [nom], pour [cliente], le [date] à [heure]..."
+ */
+export const speakBookingAnnouncement = (booking = {}) => {
+  if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+    console.warn('Synthèse vocale non supportée par ce navigateur.');
+    return;
+  }
+
+  try {
+    // Annuler tout message en cours pour priorité absolue
+    window.speechSynthesis.cancel();
+
+    const clientName = booking.clientName || booking.client_name || 'nouvelle cliente';
+    const serviceName = booking.serviceName || booking.service_name || 'Prestation beauté';
+    let timeSlot = booking.timeSlot || booking.time_slot || '';
+    if (timeSlot.includes(':')) {
+      const [h, m] = timeSlot.split(':');
+      timeSlot = `${parseInt(h, 10)} heures ${parseInt(m, 10) > 0 ? parseInt(m, 10) : ''}`;
+    }
+    const dateStr = booking.dateStr || booking.date || "aujourd'hui";
+    const depositPaid = Number(booking.depositPaid || booking.deposit_paid || 0);
+
+    const depositPhrase = depositPaid > 0
+      ? ` Acompte de ${depositPaid.toLocaleString('fr-FR')} francs C.F.A. validé.`
+      : '';
+
+    const textToSpeak = `Attention ! Nouveau rendez-vous confirmé ! Prestation : ${serviceName}. Pour ${clientName}. Le ${dateStr} à ${timeSlot}.${depositPhrase}`;
+
+    const utterance = new SpeechSynthesisUtterance(textToSpeak);
+    utterance.lang = 'fr-FR';
+    utterance.volume = 1.0; // Volume maximal supporté par l'API Speech
+    utterance.rate = 0.94;   // Légèrement posé pour une diction parfaite et claire
+    utterance.pitch = 1.05;  // Voix vivante et énergique
+
+    // Recherche de la meilleure voix française (Google, Apple ou Microsoft)
+    const loadAndSpeak = () => {
+      const voices = window.speechSynthesis.getVoices();
+      if (voices && voices.length > 0) {
+        const frVoice = voices.find(v => v.lang === 'fr-FR' || v.lang.startsWith('fr') || v.name.toLowerCase().includes('french') || v.name.toLowerCase().includes('français'));
+        if (frVoice) {
+          utterance.voice = frVoice;
+        }
+      }
+      window.speechSynthesis.speak(utterance);
+    };
+
+    if (window.speechSynthesis.getVoices().length > 0) {
+      loadAndSpeak();
+    } else {
+      window.speechSynthesis.onvoiceschanged = () => {
+        loadAndSpeak();
+      };
+      // Fallback direct
+      setTimeout(loadAndSpeak, 100);
+    }
+
+  } catch (err) {
+    console.warn('Erreur exécution synthèse vocale:', err);
+  }
+};
+
+/**
+ * ALERTE ULTIME 150% VOLUME + ANNONCE VOCALE
+ * 1. Déclenche le carillon percutant amplifié à 150%
+ * 2. Déclenche aussitôt après l'annonce vocale parlée avec les détails du rendez-vous
+ */
+export const playSuperLoudBookingAlert = (booking = {}, volume = 1.5, enableVoice = true) => {
+  try {
+    // 1. Sonnerie amplifiée (150% de puissance)
+    playCashRegister(volume);
+
+    // 2. Annonce vocale 700ms après la première note de caisse
+    if (enableVoice) {
+      setTimeout(() => {
+        speakBookingAnnouncement(booking);
+      }, 700);
+    }
+  } catch (err) {
+    console.warn('Erreur alerte ultra sonore:', err);
+  }
+};
+
 

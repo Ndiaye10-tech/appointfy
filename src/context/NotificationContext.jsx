@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { playSoundPreset } from '../utils/soundEffects';
+import { playSoundPreset, playSuperLoudBookingAlert } from '../utils/soundEffects';
 import {
   isBrowserNotificationSupported,
   getNotificationPermission,
@@ -14,7 +14,8 @@ const STORAGE_KEYS = {
   NOTIFICATIONS: 'appointfy_notifications_history',
   SOUND_ENABLED: 'appointfy_sound_enabled',
   SOUND_VOLUME: 'appointfy_sound_volume',
-  SOUND_PRESET: 'appointfy_sound_preset'
+  SOUND_PRESET: 'appointfy_sound_preset',
+  VOICE_ENABLED: 'appointfy_voice_enabled'
 };
 
 export const NotificationProvider = ({ children }) => {
@@ -46,17 +47,26 @@ export const NotificationProvider = ({ children }) => {
   const [soundVolume, setSoundVolumeState] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.SOUND_VOLUME);
-      return saved !== null ? Number(saved) : 1.0; // 1.0 = Max Loudness
+      return saved !== null ? Number(saved) : 1.5; // 1.5 = 150% Super Loud
     } catch {
-      return 1.0;
+      return 1.5;
+    }
+  });
+
+  const [voiceEnabled, setVoiceEnabledState] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.VOICE_ENABLED);
+      return saved !== null ? JSON.parse(saved) : true;
+    } catch {
+      return true;
     }
   });
 
   const [soundPreset, setSoundPresetState] = useState(() => {
     try {
-      return localStorage.getItem(STORAGE_KEYS.SOUND_PRESET) || 'chime';
+      return localStorage.getItem(STORAGE_KEYS.SOUND_PRESET) || 'cash';
     } catch {
-      return 'chime';
+      return 'cash';
     }
   });
 
@@ -111,6 +121,12 @@ export const NotificationProvider = ({ children }) => {
     syncSettingsToSupabase({ sound_preset: val });
   };
 
+  const setVoiceEnabled = (val) => {
+    setVoiceEnabledState(val);
+    localStorage.setItem(STORAGE_KEYS.VOICE_ENABLED, JSON.stringify(val));
+    syncSettingsToSupabase({ voice_enabled: val });
+  };
+
   // Chargement initial depuis Supabase (Table notifications & salons.notification_settings)
   useEffect(() => {
     let activeChannel = null;
@@ -133,6 +149,7 @@ export const NotificationProvider = ({ children }) => {
           const cfg = mySalon.notification_settings;
           if (typeof cfg.sound_enabled === 'boolean') setSoundEnabledState(cfg.sound_enabled);
           if (typeof cfg.sound_volume === 'number') setSoundVolumeState(cfg.sound_volume);
+          if (typeof cfg.voice_enabled === 'boolean') setVoiceEnabledState(cfg.voice_enabled);
           if (cfg.sound_preset) setSoundPresetState(cfg.sound_preset);
         }
 
@@ -258,9 +275,15 @@ export const NotificationProvider = ({ children }) => {
     // 1. Enregistrer dans l'état local
     setNotifications(prev => [notifItem, ...prev]);
 
-    // 2. Jouer le son HYPER FORT (Niveau 1 sonore)
+    // 2. Jouer l'alerte HYPER FORTE (150% volume + Annonce Vocale en Français)
     if (soundEnabled) {
-      playSoundPreset(soundPreset, soundVolume);
+      playSuperLoudBookingAlert({
+        clientName,
+        serviceName,
+        timeSlot,
+        dateStr,
+        depositPaid
+      }, soundVolume || 1.5, voiceEnabled);
     }
 
     // 3. Afficher le Toast Flottant Animé (Niveau 1 visuel)
@@ -297,19 +320,25 @@ export const NotificationProvider = ({ children }) => {
       console.warn('Supabase notifications table insert fallback:', dbErr);
     }
 
-  }, [soundEnabled, soundPreset, soundVolume]);
+  }, [soundEnabled, soundPreset, soundVolume, voiceEnabled]);
 
   /**
-   * Tester le son et le push immédiatement (Bouton Test)
+   * Tester le son et le push immédiatement (Bouton Test à 150% + Voix)
    */
   const triggerTestAlert = useCallback(() => {
-    playSoundPreset(soundPreset, soundVolume);
+    playSuperLoudBookingAlert({
+      clientName: 'Awa Diallo',
+      serviceName: 'Tresses et Soin capillaire',
+      timeSlot: '15:30',
+      dateStr: "Aujourd'hui",
+      depositPaid: 5000
+    }, soundVolume || 1.5, voiceEnabled);
 
     const testItem = {
       id: 'test-' + Date.now(),
       type: 'test',
-      title: '🔔 Test Alerte Sonore Réussi !',
-      message: `Son : ${soundPreset.toUpperCase()} à ${Math.round(soundVolume * 100)}% de volume max.`,
+      title: '🔊 Alerte 150% + Annonce Vocale Réussie !',
+      message: `Sonore à ${Math.round((soundVolume || 1.5) * 100)}% de puissance + Annonce vocale de la cliente, prestation, date et heure.`,
       timestamp: new Date().toISOString(),
       read: false
     };
@@ -318,11 +347,11 @@ export const NotificationProvider = ({ children }) => {
     setActiveToast(testItem);
 
     sendSystemNotification({
-      title: '🔔 Test Son & Alerte Salon Réussi !',
-      body: `Volume sonore maximal actif. Votre salon est paré pour recevoir les réservations en direct !`,
+      title: '🚨 Test Alerte Vocale 150% Réussi !',
+      body: `Volume sonore maximal actif (150%) avec annonce parlée des rendez-vous.`,
       tag: 'test-sound'
     });
-  }, [soundPreset, soundVolume]);
+  }, [soundPreset, soundVolume, voiceEnabled]);
 
   /**
    * Demander la permission push au navigateur
@@ -386,6 +415,8 @@ export const NotificationProvider = ({ children }) => {
         setSoundVolume,
         soundPreset,
         setSoundPreset,
+        voiceEnabled,
+        setVoiceEnabled,
         pushPermission,
         requestPush,
         activeToast,
