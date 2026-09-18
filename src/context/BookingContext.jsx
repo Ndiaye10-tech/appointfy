@@ -117,18 +117,28 @@ export const BookingProvider = ({ children }) => {
     // Droits Super Admin à vie : Aucune restriction d'abonnement
     if (isPlatformAdmin) return false;
     
-    // Statut explicite 'expired'
+    // 1. Statut explicite 'expired' ou compte désactivé
     if (salon.subscriptionStatus === 'expired') return true;
     if (salon.isSubscriptionActive === false) return true;
 
-    // Calcul par date d'échéance de l'essai ou de l'abonnement
-    const expiresAt = salon.subscriptionExpiresAt || salon.trialEndsAt;
-    if (expiresAt) {
-      const expTime = new Date(expiresAt).getTime();
-      if (!isNaN(expTime) && Date.now() > expTime) {
-        return true;
+    // 2. Si salon en période d'essai gratuit (14 jours)
+    if (salon.subscriptionStatus === 'trial' || !salon.subscriptionStatus) {
+      const trialTime = salon.trialEndsAt ? new Date(salon.trialEndsAt).getTime() : 0;
+      if (trialTime && Date.now() > trialTime) {
+        return true; // 14 jours écoulés sans paiement -> RESTRICTIONS BLOQUANTES
       }
+      return false; // Essai en cours -> accès gratuit sans restriction
     }
+
+    // 3. Si salon abonné payant (30 jours)
+    if (salon.subscriptionStatus === 'active') {
+      const expTime = salon.subscriptionExpiresAt ? new Date(salon.subscriptionExpiresAt).getTime() : 0;
+      if (expTime && Date.now() > expTime) {
+        return true; // 30 jours écoulés sans renouvellement -> RESTRICTIONS BLOQUANTES
+      }
+      return false; // Abonnement actif à jour
+    }
+
     return false;
   })();
 
@@ -2069,7 +2079,7 @@ export const BookingProvider = ({ children }) => {
         { data: allAppointments },
         { data: allPayments }
       ] = await Promise.all([
-        supabase.from('salons').select('id, country, subscription_status, is_subscription_active, trial_ends_at'),
+        supabase.from('salons').select('id, country, subscription_status, is_subscription_active, trial_ends_at, subscription_expires_at'),
         supabase.from('appointments').select('id, deposit_paid, price, status, created_at'),
         supabase.from('subscription_payments').select('id, amount, status')
       ]);
@@ -2080,20 +2090,25 @@ export const BookingProvider = ({ children }) => {
 
       let active = 0, trial = 0, expired = 0, sn = 0, ci = 0;
       salonsList.forEach(s => {
-        const isAct = s.subscription_status === 'active' || s.is_subscription_active === true;
         const trialEnd = s.trial_ends_at ? new Date(s.trial_ends_at).getTime() : 0;
-        const isTr = s.subscription_status === 'trial' && (trialEnd > Date.now() || !trialEnd);
+        const isTrialValid = (s.subscription_status === 'trial' || !s.subscription_status) && (trialEnd > Date.now() || !trialEnd);
+        const isSubActive = s.subscription_status === 'active' && s.is_subscription_active !== false;
 
-        if (isAct) active++;
-        else if (isTr) trial++;
-        else expired++;
+        if (isSubActive) {
+          active++; // VRAI abonné payant
+        } else if (isTrialValid) {
+          trial++; // En période d'essai gratuit 14 jours (NE COMPTE PAS DANS LE MRR)
+        } else {
+          expired++; // 14 jours écoulés sans payer -> RESTRICTIONS
+        }
 
         if (s.country === 'CI') ci++;
         else sn++;
       });
 
       const totalDeposits = apptsList.reduce((acc, a) => acc + (Number(a.deposit_paid) || 0), 0);
-      const totalSaasRevenue = paysList.filter(p => p.status === 'success').reduce((acc, p) => acc + (Number(p.amount) || 0), 0) || (active * 9900);
+      // Chiffre d'affaires SaaS réel encaissé (strictement la somme des paiements réussis)
+      const totalSaasRevenue = paysList.filter(p => p.status === 'success').reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
 
       const todayStr = new Date().toISOString().split('T')[0];
       const apptsToday = apptsList.filter(a => a.created_at && a.created_at.startsWith(todayStr)).length;

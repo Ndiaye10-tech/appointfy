@@ -1,4 +1,4 @@
-﻿-- ==============================================================================
+-- ==============================================================================
 -- APPOINTFY : MODULE SUPER-ADMIN SAAS V2 (TEMPS RÉEL ET RACCORDEMENT 100% BASE DE DONNÉES)
 -- Autorise et outille l'administrateur (mahmoudndiaye100@gmail.com)
 -- À exécuter dans Supabase SQL Editor
@@ -61,27 +61,29 @@ BEGIN
     SELECT COUNT(*) INTO v_salons_sn FROM public.salons WHERE country = 'SN' OR country IS NULL;
     SELECT COUNT(*) INTO v_salons_ci FROM public.salons WHERE country = 'CI';
 
+    -- Salons avec abonnement payant actif (STRICTEMENT subscription_status = 'active')
     SELECT COUNT(*) INTO v_active_subscribers 
     FROM public.salons 
-    WHERE subscription_status = 'active' OR is_subscription_active = TRUE;
+    WHERE subscription_status = 'active' AND is_subscription_active IS NOT FALSE;
 
+    -- Salons en période d'essai gratuit (14 jours)
     SELECT COUNT(*) INTO v_trial_salons 
     FROM public.salons 
-    WHERE subscription_status = 'trial' 
+    WHERE (subscription_status = 'trial' OR subscription_status IS NULL) 
       AND (trial_ends_at IS NULL OR trial_ends_at > NOW());
 
+    -- Salons expirés (14 jours dépassés sans paiement ou compte suspendu)
     SELECT COUNT(*) INTO v_expired_salons 
     FROM public.salons 
     WHERE subscription_status = 'expired' 
-       OR (subscription_status = 'trial' AND trial_ends_at <= NOW());
+       OR is_subscription_active = FALSE
+       OR ((subscription_status = 'trial' OR subscription_status IS NULL) AND trial_ends_at <= NOW())
+       OR (subscription_status = 'active' AND subscription_expires_at <= NOW());
 
+    -- Chiffre d'affaires SaaS réel (strictement la somme des paiements réussis)
     SELECT COALESCE(SUM(amount), 0) INTO v_total_revenue_saas 
     FROM public.subscription_payments 
     WHERE status = 'success';
-
-    IF v_total_revenue_saas = 0 AND v_active_subscribers > 0 THEN
-        v_total_revenue_saas := v_active_subscribers * 9900;
-    END IF;
 
     SELECT 
         COUNT(*), 
@@ -211,7 +213,20 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.subscription_payments TO anon, au
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.salons TO anon, authenticated, service_role;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.appointments TO anon, authenticated, service_role;
 
--- 6. ACTUALISER LE CACHE DU SCHÉMA
+-- 6. RÉINITIALISATION AUTOMATIQUE DES COMPTES DE TEST SANS PAIEMENT RÉEL
+-- Tous les salons n'ayant jamais payé d'abonnement réel (status = 'success') sont remis en 'trial' (essai 14j)
+-- pour ne pas fausser les KPIs (0 abonné payant, 0 FCFA de MRR).
+UPDATE public.salons
+SET 
+    subscription_status = 'trial',
+    trial_ends_at = COALESCE(trial_ends_at, created_at + INTERVAL '14 days', NOW() + INTERVAL '14 days'),
+    subscription_expires_at = NULL
+WHERE id NOT IN (
+    SELECT DISTINCT salon_id FROM public.subscription_payments WHERE status = 'success' AND salon_id IS NOT NULL
+) AND (subscription_status = 'active' OR subscription_status IS NULL);
+
+-- 7. ACTUALISER LE CACHE DU SCHÉMA
 NOTIFY pgrst, 'reload schema';
 
-SELECT 'MODULE SUPER-ADMIN V2 INITIALISE AVEC SUCCES' AS statut;
+SELECT 'MODULE SUPER-ADMIN V2 INITIALISE AVEC SUCCES (Comptes de test réinitialisés en Essai 14j)' AS statut;
+

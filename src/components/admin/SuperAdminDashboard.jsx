@@ -148,13 +148,14 @@ export const SuperAdminDashboard = () => {
 
       if (!matchesSearch) return false;
 
-      const isSubActive = s.subscription_status === 'active' || s.is_subscription_active === true;
+      const isSubActive = s.subscription_status === 'active' && s.is_subscription_active !== false;
       const trialEnds = s.trial_ends_at ? new Date(s.trial_ends_at).getTime() : 0;
-      const isTrialValid = s.subscription_status === 'trial' && (trialEnds > Date.now() || !trialEnds);
+      const isTrialValid = (s.subscription_status === 'trial' || !s.subscription_status) && (trialEnds > Date.now() || !trialEnds);
+      const isExpired = !isSubActive && !isTrialValid;
 
       if (filterStatus === 'active' && !isSubActive) return false;
-      if (filterStatus === 'trial' && (!isTrialValid || isSubActive)) return false;
-      if (filterStatus === 'expired' && (isSubActive || isTrialValid)) return false;
+      if (filterStatus === 'trial' && !isTrialValid) return false;
+      if (filterStatus === 'expired' && !isExpired) return false;
 
       const salonCountry = (s.country || 'SN').toUpperCase();
       if (filterCountry === 'SN' && salonCountry !== 'SN') return false;
@@ -596,9 +597,9 @@ export const SuperAdminDashboard = () => {
                       </tr>
                     ) : (
                       filteredSalons.map((s) => {
-                        const isSubActive = s.subscription_status === 'active' || s.is_subscription_active === true;
+                        const isSubActive = s.subscription_status === 'active' && s.is_subscription_active !== false;
                         const trialEnds = s.trial_ends_at ? new Date(s.trial_ends_at).getTime() : 0;
-                        const isTrialValid = s.subscription_status === 'trial' && (trialEnds > Date.now() || !trialEnds);
+                        const isTrialValid = (s.subscription_status === 'trial' || !s.subscription_status) && (trialEnds > Date.now() || !trialEnds);
                         const daysLeft = trialEnds ? Math.max(0, Math.ceil((trialEnds - Date.now()) / (1000 * 60 * 60 * 24))) : 0;
                         const salonCountry = (s.country || 'SN').toUpperCase();
 
@@ -655,17 +656,17 @@ export const SuperAdminDashboard = () => {
                               {isSubActive ? (
                                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-extrabold text-[10px] uppercase tracking-wider">
                                   <CheckCircle2 className="w-3 h-3" />
-                                  Actif (Payé)
+                                  Abonné Payant
                                 </span>
                               ) : isTrialValid ? (
                                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 font-extrabold text-[10px] uppercase tracking-wider">
                                   <Clock className="w-3 h-3" />
-                                  Essai ({daysLeft}j)
+                                  Essai Gratuit ({daysLeft}j)
                                 </span>
                               ) : (
                                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-500/15 text-rose-300 border border-rose-500/30 font-extrabold text-[10px] uppercase tracking-wider">
                                   <AlertTriangle className="w-3 h-3" />
-                                  Expiré
+                                  Expiré (Restreint)
                                 </span>
                               )}
                             </td>
