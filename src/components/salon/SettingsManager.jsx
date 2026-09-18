@@ -25,7 +25,9 @@ import {
   Volume2,
   VolumeX,
   Play,
-  Music
+  Music,
+  Gift,
+  Crown
 } from 'lucide-react';
 
 export const SettingsManager = ({ defaultSection }) => {
@@ -53,8 +55,8 @@ export const SettingsManager = ({ defaultSection }) => {
   };
 
 
-  // Expanded section state: 'subscription' if expired or requested, else 'general'
-  const [openSection, setOpenSection] = useState(defaultSection || (isSubscriptionExpired ? 'subscription' : 'general'));
+  // Accordion state: 'general' | 'deposit' | 'notifications' | 'payments' | 'loyalty' | 'subscription' | 'account'
+  const [openSection, setOpenSection] = useState(defaultSection || 'general');
 
   useEffect(() => {
     if (defaultSection) {
@@ -62,8 +64,9 @@ export const SettingsManager = ({ defaultSection }) => {
     }
   }, [defaultSection]);
 
-  // Form State
+  // Form states initialized with salon data
   const [formData, setFormData] = useState({
+    // General
     owner_name: salon?.owner_name || '',
     name: salon?.name || '',
     tagline: salon?.tagline || '',
@@ -71,7 +74,7 @@ export const SettingsManager = ({ defaultSection }) => {
     phone: salon?.phone || '',
     whatsapp: salon?.whatsapp || '',
     address: salon?.address || '',
-    city: salon?.city || '',
+    city: salon?.city || 'Dakar',
     // Booking Rules & Deposit
     depositRequired: salon?.depositRequired !== false,
     depositType: salon?.depositType || 'rate', // 'rate' | 'fixed'
@@ -85,6 +88,12 @@ export const SettingsManager = ({ defaultSection }) => {
     acceptWave: salon?.acceptWave !== false,
     paymentRecipientPhone: salon?.paymentRecipientPhone || salon?.phone || '',
     sendDigitalReceipt: salon?.sendDigitalReceipt !== false,
+    // Programme de Fidélité Client
+    loyalty_enabled: salon?.loyalty_enabled !== false,
+    loyalty_target_visits: salon?.loyalty_target_visits || 5,
+    loyalty_reward_type: salon?.loyalty_reward_type || 'amount', // 'amount' | 'percent' | 'service'
+    loyalty_reward_value: salon?.loyalty_reward_value !== undefined ? salon.loyalty_reward_value : 2000,
+    loyalty_reward_description: salon?.loyalty_reward_description || '2 000 F de remise immédiate ou 1 soin offert',
     // WhatsApp Notifications
     whatsappConfirmEnabled: salon?.whatsappConfirmEnabled !== false,
     whatsappReminderEnabled: salon?.whatsappReminderEnabled !== false,
@@ -116,6 +125,11 @@ export const SettingsManager = ({ defaultSection }) => {
         acceptWave: salon.acceptWave !== undefined ? salon.acceptWave : prev.acceptWave,
         paymentRecipientPhone: salon.paymentRecipientPhone || salon.phone || prev.paymentRecipientPhone,
         sendDigitalReceipt: salon.sendDigitalReceipt !== undefined ? salon.sendDigitalReceipt : prev.sendDigitalReceipt,
+        loyalty_enabled: salon.loyalty_enabled !== undefined ? salon.loyalty_enabled : prev.loyalty_enabled,
+        loyalty_target_visits: salon.loyalty_target_visits || prev.loyalty_target_visits || 5,
+        loyalty_reward_type: salon.loyalty_reward_type || prev.loyalty_reward_type || 'amount',
+        loyalty_reward_value: salon.loyalty_reward_value !== undefined ? salon.loyalty_reward_value : prev.loyalty_reward_value,
+        loyalty_reward_description: salon.loyalty_reward_description || prev.loyalty_reward_description,
         whatsappConfirmEnabled: salon.whatsappConfirmEnabled !== undefined ? salon.whatsappConfirmEnabled : prev.whatsappConfirmEnabled,
         whatsappReminderEnabled: salon.whatsappReminderEnabled !== undefined ? salon.whatsappReminderEnabled : prev.whatsappReminderEnabled,
         whatsappReminderHours: salon.whatsappReminderHours !== undefined ? salon.whatsappReminderHours : prev.whatsappReminderHours,
@@ -965,7 +979,272 @@ export const SettingsManager = ({ defaultSection }) => {
           )}
         </div>
 
-        {/* 5. ABONNEMENT APPOINTFY (9 900 F) */}
+        {/* 5. PROGRAMME DE FIDÉLITÉ & CARTE À TAMPONS (CONTRÔLÉ PAR LA GÉRANTE) */}
+        <div>
+          <button
+            type="button"
+            onClick={() => toggleSection('loyalty')}
+            className="w-full p-4 sm:p-5 flex items-center justify-between text-left hover:bg-slate-50/60 transition-colors cursor-pointer"
+          >
+            <div className="flex items-center gap-3.5 min-w-0">
+              <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                <Gift className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-sm text-slate-900 truncate">
+                    Programme de Fidélité & Carte à Tampons
+                  </span>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-black shrink-0 ${
+                    formData.loyalty_enabled 
+                      ? 'bg-emerald-100 text-emerald-800' 
+                      : 'bg-slate-100 text-slate-500'
+                  }`}>
+                    {formData.loyalty_enabled ? 'Actif' : 'Désactivé'}
+                  </span>
+                </div>
+                <span className="text-xs text-slate-500 block truncate mt-0.5">
+                  {formData.loyalty_enabled 
+                    ? `Objectif : ${formData.loyalty_target_visits} visites pour débloquer « ${formData.loyalty_reward_description} »`
+                    : 'Encouragez vos clientes à revenir régulièrement'}
+                </span>
+              </div>
+            </div>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-slate-400 transition-transform duration-200 shrink-0 ml-2 ${
+              openSection === 'loyalty' ? 'rotate-180 text-slate-900' : ''
+            }`}>
+              <ChevronDown className="w-5 h-5" />
+            </div>
+          </button>
+
+          {openSection === 'loyalty' && (
+            <form onSubmit={handleSave} className="p-4 sm:p-6 bg-slate-50/40 border-t border-slate-100 space-y-5 animate-in fade-in duration-150">
+              
+              {/* Interrupteur Activation */}
+              <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs flex items-center justify-between gap-4">
+                <div className="space-y-0.5">
+                  <strong className="block text-xs sm:text-sm font-bold text-slate-900">
+                    Activer la Carte de Fidélité Client
+                  </strong>
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    Comptabilise automatiquement les passages par numéro de téléphone et motive vos clientes à revenir.
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={formData.loyalty_enabled}
+                    onChange={(e) => handleChange('loyalty_enabled', e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
+                </label>
+              </div>
+
+              {formData.loyalty_enabled && (
+                <div className="space-y-4">
+                  {/* Choix du seuil de visites */}
+                  <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-3">
+                    <label className="block text-xs font-bold text-slate-800">
+                      Nombre de visites requises pour débloquer le cadeau :
+                    </label>
+                    <div className="grid grid-cols-3 gap-2.5">
+                      {[5, 8, 10].map(nb => (
+                        <button
+                          key={nb}
+                          type="button"
+                          onClick={() => handleChange('loyalty_target_visits', nb)}
+                          className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${
+                            Number(formData.loyalty_target_visits) === nb
+                              ? 'bg-amber-500 text-white border-amber-600 shadow-xs font-black'
+                              : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200 font-bold text-xs'
+                          }`}
+                        >
+                          <span className="block text-base">{nb} visites</span>
+                          <span className="text-[10px] opacity-80 block">
+                            {nb === 5 ? 'Populaire ⭐' : `${nb} passages`}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Choix du type de récompense */}
+                  <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-3">
+                    <label className="block text-xs font-bold text-slate-800">
+                      Type d'avantage accordé à la cliente fidèle :
+                    </label>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                      <button
+                        type="button"
+                        onClick={() => handleChange('loyalty_reward_type', 'amount')}
+                        className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                          formData.loyalty_reward_type === 'amount'
+                            ? 'bg-amber-50 border-amber-400 text-amber-950 font-bold ring-1 ring-amber-400'
+                            : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                        }`}
+                      >
+                        <span className="block text-xs font-black text-amber-900">💵 Remise fixe (FCFA)</span>
+                        <span className="text-[11px] text-slate-500 block mt-0.5">Ex: 2 000 FCFA déduits à la caisse</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleChange('loyalty_reward_type', 'percent')}
+                        className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                          formData.loyalty_reward_type === 'percent'
+                            ? 'bg-amber-50 border-amber-400 text-amber-950 font-bold ring-1 ring-amber-400'
+                            : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                        }`}
+                      >
+                        <span className="block text-xs font-black text-amber-900">🏷️ Pourcentage (%)</span>
+                        <span className="text-[11px] text-slate-500 block mt-0.5">Ex: -20% sur la visite</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleChange('loyalty_reward_type', 'service')}
+                        className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                          formData.loyalty_reward_type === 'service'
+                            ? 'bg-amber-50 border-amber-400 text-amber-950 font-bold ring-1 ring-amber-400'
+                            : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                        }`}
+                      >
+                        <span className="block text-xs font-black text-amber-900">🎁 Prestation offerte</span>
+                        <span className="text-[11px] text-slate-500 block mt-0.5">Ex: Soin vapeur ou Brushing offert</span>
+                      </button>
+                    </div>
+
+                    {/* Valeur selon le type */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                      {formData.loyalty_reward_type === 'amount' && (
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1">
+                            Montant de la remise (FCFA)
+                          </label>
+                          <input
+                            type="number"
+                            step="500"
+                            min="500"
+                            value={formData.loyalty_reward_value}
+                            onChange={(e) => handleChange('loyalty_reward_value', Number(e.target.value))}
+                            className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-amber-500"
+                          />
+                        </div>
+                      )}
+
+                      {formData.loyalty_reward_type === 'percent' && (
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1">
+                            Pourcentage de réduction (%)
+                          </label>
+                          <input
+                            type="number"
+                            min="5"
+                            max="100"
+                            value={formData.loyalty_reward_value}
+                            onChange={(e) => handleChange('loyalty_reward_value', Number(e.target.value))}
+                            className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-amber-500"
+                          />
+                        </div>
+                      )}
+
+                      <div className={formData.loyalty_reward_type === 'service' ? 'sm:col-span-2' : ''}>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">
+                          Intitulé / Nom du cadeau pour les clientes *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={formData.loyalty_reward_description}
+                          onChange={(e) => handleChange('loyalty_reward_description', e.target.value)}
+                          placeholder="ex: 2 000 F de remise ou 1 Soin vapeur offert"
+                          className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-amber-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Aperçu Visuel Carte à Tampons */}
+                  <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-50 via-orange-50/50 to-amber-100/30 border border-amber-200 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Crown className="w-4 h-4 text-amber-600" />
+                        <span className="text-xs font-black text-amber-950 uppercase tracking-wider">
+                          Aperçu de la Carte de Fidélité Cliente
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-bold text-amber-800 bg-amber-200/70 px-2 py-0.5 rounded-full">
+                        Exemple : 4 / {formData.loyalty_target_visits} visites
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-amber-900">
+                      Voici comment vos clientes et votre équipe visualisent les tampons :
+                    </p>
+
+                    {/* Pastilles visuelles */}
+                    <div className="flex items-center gap-2 pt-1 flex-wrap">
+                      {Array.from({ length: Number(formData.loyalty_target_visits) || 5 }).map((_, idx) => {
+                        const isStamped = idx < 4; // Simule 4 tampons
+                        const isLast = idx === (Number(formData.loyalty_target_visits) || 5) - 1;
+                        return (
+                          <div
+                            key={idx}
+                            className={`w-10 h-10 rounded-2xl flex flex-col items-center justify-center font-black text-xs border shadow-2xs transition-all ${
+                              isStamped
+                                ? 'bg-amber-500 text-white border-amber-600 shadow-amber-200 scale-105'
+                                : isLast
+                                ? 'bg-white border-dashed border-amber-400 text-amber-600 animate-pulse'
+                                : 'bg-white border-slate-200 text-slate-400'
+                            }`}
+                          >
+                            {isStamped ? (
+                              <span>✓</span>
+                            ) : isLast ? (
+                              <Gift className="w-4 h-4" />
+                            ) : (
+                              <span>{idx + 1}</span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <p className="text-[11px] text-amber-800 italic pt-1">
+                      🎁 Récompense au {formData.loyalty_target_visits}ème passage : <strong>{formData.loyalty_reward_description}</strong>
+                    </p>
+                  </div>
+
+                  {/* Alerte Sécurité & Contrôle Gérante */}
+                  <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200 flex items-start gap-2.5 text-xs text-blue-900">
+                    <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                    <div>
+                      <strong className="block font-bold">Contrôle Gérante Garanti à 100% :</strong>
+                      <span className="text-[11px] text-blue-800 leading-relaxed block mt-0.5">
+                        Aucun cadeau n'est déduit automatiquement. À la caisse, la gérante ou la caissière doit obligatoirement cocher la case d'application pour valider la remise.
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="pt-2 flex justify-end">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-50 shadow-md shadow-amber-600/20"
+                >
+                  {saving ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                  <span>Enregistrer la fidélité</span>
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+
+        {/* 6. ABONNEMENT APPOINTFY (9 900 F) */}
         <div>
           <button
             type="button"

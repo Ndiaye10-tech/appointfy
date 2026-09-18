@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useBooking, formatFCFA } from '../../context/BookingContext';
 import { getTheme } from '../../lib/theme';
-import { User, Phone, MessageSquare, ChevronLeft, ShieldCheck, Lock, ArrowRight } from 'lucide-react';
+import { User, Phone, MessageSquare, ChevronLeft, ShieldCheck, Lock, ArrowRight, Gift, Crown, Sparkles } from 'lucide-react';
 
 export const ClientForm = () => {
   const {
@@ -13,11 +13,20 @@ export const ClientForm = () => {
     clientInfo,
     updateClientInfo,
     setStep,
-    proceedToPayment
+    proceedToPayment,
+    getClientLoyalty
   } = useBooking();
 
   const theme = getTheme(salon?.theme);
   const isTeamMode = (salon?.teamMode === 'team' || salon?.team_mode === 'team') && Array.isArray(salon?.team) && salon.team.length > 1;
+
+  // Reconnaissance fidélité par numéro
+  const clientLoyalty = useMemo(() => {
+    if (!clientInfo.phone || clientInfo.phone.replace(/\D/g, '').length < 8) return null;
+    return getClientLoyalty ? getClientLoyalty(clientInfo.phone) : null;
+  }, [clientInfo.phone, getClientLoyalty]);
+
+  const isLoyaltyEnabled = salon?.loyalty_enabled !== false;
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -140,6 +149,38 @@ export const ClientForm = () => {
           <p className="text-[11px] text-stone-600 mt-1">
             Utilisé pour l'acompte et pour vous prévenir en cas de rappel ou modification.
           </p>
+
+          {/* Badge Fidélité Immédiat pour la Cliente */}
+          {isLoyaltyEnabled && clientLoyalty && (
+            <div className="mt-2.5 p-3 rounded-xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/15 border border-amber-300 text-xs text-amber-950 space-y-1.5 animate-in fade-in duration-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 font-black">
+                  {clientLoyalty.isRewardAvailable ? (
+                    <Crown className="w-3.5 h-3.5 text-amber-600 animate-bounce" />
+                  ) : (
+                    <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                  )}
+                  <span>
+                    {clientLoyalty.isRewardAvailable 
+                      ? '👑 Récompense VIP Prête !' 
+                      : `Carte Fidélité : ${clientLoyalty.visitsCount}/${clientLoyalty.targetVisits} passages`}
+                  </span>
+                </div>
+                <span className="text-[10px] font-bold text-amber-900 bg-amber-200/70 px-2 py-0.5 rounded-full">
+                  {clientLoyalty.isRewardAvailable ? 'À réclamer au salon' : 'Salon VIP'}
+                </span>
+              </div>
+              <p className="text-[11px] text-amber-800 leading-tight">
+                {clientLoyalty.isRewardAvailable ? (
+                  <>Félicitations ! Votre avantage (<strong>{salon?.loyalty_reward_description || 'Cadeau VIP'}</strong>) est prêt et sera validé au salon lors de votre passage.</>
+                ) : clientLoyalty.visitsCount > 0 ? (
+                  <>Plus que <strong>{clientLoyalty.targetVisits - clientLoyalty.visitsCount} visite(s)</strong> pour débloquer : <em>{salon?.loyalty_reward_description || 'Avantage VIP'}</em>.</>
+                ) : (
+                  <>Ce rendez-vous validera votre premier passage sur la carte de fidélité du salon.</>
+                )}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Notes */}

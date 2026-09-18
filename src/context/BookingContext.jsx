@@ -646,8 +646,13 @@ export const BookingProvider = ({ children }) => {
           if (!loyErr && remoteLoyalty && remoteLoyalty.length > 0) {
             const loyaltyMap = {};
             remoteLoyalty.forEach(l => {
+              const target = Number(salon?.loyalty_target_visits) || 5;
+              const visits = Number(l.visits_count) || (Number(l.points_balance) > 0 ? Math.min(target, Math.floor(Number(l.points_balance) / 50)) : 0);
               loyaltyMap[l.client_phone] = {
                 pointsBalance: Number(l.points_balance) || 0,
+                visitsCount: visits,
+                rewardsEarned: Number(l.rewards_earned) || 0,
+                rewardsPending: Number(l.rewards_pending) || (visits >= target ? 1 : 0),
                 totalEarned: Number(l.total_points_earned) || 0,
                 totalSpent: Number(l.total_points_spent) || 0,
                 history: Array.isArray(l.history) ? l.history : []
@@ -1913,16 +1918,149 @@ export const BookingProvider = ({ children }) => {
     return newQty;
   };
 
-  // ================= PROGRAMME DE FIDÉLITÉ (LOYALTY) =================
+  // ================= PROGRAMME DE FIDÉLITÉ & CARTE À TAMPONS (LOYALTY) =================
   const getClientLoyalty = (clientPhone) => {
-    if (!clientPhone) return { pointsBalance: 0, totalEarned: 0, totalSpent: 0, history: [] };
+    const target = Number(salon?.loyalty_target_visits) || 5;
+    if (!clientPhone) {
+      return {
+        pointsBalance: 0,
+        visitsCount: 0,
+        targetVisits: target,
+        rewardsPending: 0,
+        rewardsEarned: 0,
+        isRewardAvailable: false,
+        totalEarned: 0,
+        totalSpent: 0,
+        history: []
+      };
+    }
     const cleanPhone = clientPhone.replace(/\D/g, '');
-    return clientLoyalty[cleanPhone] || clientLoyalty[clientPhone] || {
-      pointsBalance: 0,
-      totalEarned: 0,
-      totalSpent: 0,
-      history: []
+    const data = clientLoyalty[cleanPhone] || clientLoyalty[clientPhone] || {};
+    const visits = Number(data.visitsCount) || 0;
+    const rewardsPending = Number(data.rewardsPending) || (visits >= target ? 1 : 0);
+    const isRewardAvailable = rewardsPending > 0 || visits >= target;
+
+    return {
+      pointsBalance: Number(data.pointsBalance) || 0,
+      visitsCount: visits,
+      targetVisits: target,
+      rewardsPending: rewardsPending,
+      rewardsEarned: Number(data.rewardsEarned) || 0,
+      isRewardAvailable: isRewardAvailable,
+      totalEarned: Number(data.totalEarned) || 0,
+      totalSpent: Number(data.totalSpent) || 0,
+      history: Array.isArray(data.history) ? data.history : []
     };
+  };
+
+  // Enregistrer un passage/visite sur la carte à tampons de la cliente
+  const recordLoyaltyVisit = async ({ phone, name, amount = 0, serviceName = '' }) => {
+    if (!phone) return;
+    const cleanPhone = phone.replace(/\D/g, '');
+    const current = getClientLoyalty(cleanPhone);
+    const target = Number(salon?.loyalty_target_visits) || 5;
+    
+    // Nouveau compteur de visites
+    const nextVisits = current.visitsCount + 1;
+    const rewardUnlocked = nextVisits >= target;
+    const newRewardsPending = rewardUnlocked ? (current.rewardsPending + 1) : current.rewardsPending;
+    const ptsEarned = Math.max(10, Math.floor((Number(amount) || 0) / 100));
+
+    const updated = {
+      pointsBalance: (current.pointsBalance || 0) + ptsEarned,
+      visitsCount: rewardUnlocked ? target : nextVisits, // Si atteint, reste à target jusqu'à validation de la gérante
+      targetVisits: target,
+      rewardsPending: newRewardsPending,
+      rewardsEarned: current.rewardsEarned || 0,
+      totalEarned: (current.totalEarned || 0) + ptsEarned,
+      totalSpent: current.totalSpent || 0,
+      history: [
+        {
+          date: new Date().toISOString().split('T')[0],
+          points: `+${ptsEarned}`,
+          visit: `${Math.min(target, nextVisits)}/${target}`,
+          reason: rewardUnlocked 
+            ? `🎉 5ème visite complétée ! Récompense fidélité débloquée (${serviceName || 'Prestation'})`
+            : `Tampon visite ${nextVisits}/${target} (${serviceName || 'Prestation'})`
+        },
+        ...(current.history || [])
+      ]
+    };
+
+    setClientLoyalty(prev => ({
+      ...prev,
+      [cleanPhone]: updated
+    }));
+
+    if (salon?.id) {
+      try {
+        await supabase.from('client_loyalty').upsert({
+          salon_id: salon.id,
+          client_phone: cleanPhone,
+          client_name: name || null,
+          points_balance: updated.pointsBalance,
+          visits_count: updated.visitsCount,
+          rewards_pending: updated.rewardsPending,
+          rewards_earned: updated.rewardsEarned,
+          total_points_earned: updated.totalEarned,
+          total_points_spent: updated.totalSpent,
+          history: updated.history,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'salon_id,client_phone' });
+      } catch (err) {
+        console.warn('Erreur recordLoyaltyVisit Supabase:', err);
+      }
+    }
+
+    return { rewardUnlocked, currentVisits: updated.visitsCount, target };
+  };
+
+  // Validation d'une récompense fidélité par la gérante (remise à zéro du cycle)
+  const redeemLoyaltyReward = async ({ phone, discountFCFA = 0, rewardDescription = '' }) => {
+    if (!phone) return 0;
+    const cleanPhone = phone.replace(/\D/g, '');
+    const current = getClientLoyalty(cleanPhone);
+
+    const updated = {
+      ...current,
+      visitsCount: 0, // Nouveau cycle de tampons démarre à 0
+      rewardsPending: Math.max(0, (current.rewardsPending || 1) - 1),
+      rewardsEarned: (current.rewardsEarned || 0) + 1,
+      history: [
+        {
+          date: new Date().toISOString().split('T')[0],
+          points: discountFCFA > 0 ? `-${discountFCFA} F` : 'Cadeau',
+          reason: `👑 Récompense accordée : ${rewardDescription || (discountFCFA > 0 ? `Remise ${discountFCFA} FCFA` : 'Cadeau fidélité')}`
+        },
+        ...(current.history || [])
+      ]
+    };
+
+    setClientLoyalty(prev => ({
+      ...prev,
+      [cleanPhone]: updated
+    }));
+
+    if (salon?.id) {
+      try {
+        await supabase.from('client_loyalty').upsert({
+          salon_id: salon.id,
+          client_phone: cleanPhone,
+          points_balance: updated.pointsBalance,
+          visits_count: updated.visitsCount,
+          rewards_pending: updated.rewardsPending,
+          rewards_earned: updated.rewardsEarned,
+          total_points_earned: updated.totalEarned,
+          total_points_spent: updated.totalSpent,
+          history: updated.history,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'salon_id,client_phone' });
+      } catch (err) {
+        console.warn('Erreur redeemLoyaltyReward Supabase:', err);
+      }
+    }
+
+    return discountFCFA;
   };
 
   const awardLoyaltyPoints = async ({ phone, name, points, reason }) => {
@@ -1931,6 +2069,7 @@ export const BookingProvider = ({ children }) => {
 
     const current = getClientLoyalty(cleanPhone);
     const updated = {
+      ...current,
       pointsBalance: (current.pointsBalance || 0) + points,
       totalEarned: (current.totalEarned || 0) + points,
       totalSpent: current.totalSpent || 0,
@@ -1974,6 +2113,7 @@ export const BookingProvider = ({ children }) => {
     const current = getClientLoyalty(cleanPhone);
     const newBalance = Math.max(0, (current.pointsBalance || 0) - pointsToRedeem);
     const updated = {
+      ...current,
       pointsBalance: newBalance,
       totalEarned: current.totalEarned || 0,
       totalSpent: (current.totalSpent || 0) + pointsToRedeem,
@@ -2333,6 +2473,8 @@ export const BookingProvider = ({ children }) => {
         getClientLoyalty,
         awardLoyaltyPoints,
         redeemLoyaltyPoints,
+        recordLoyaltyVisit,
+        redeemLoyaltyReward,
         activeStaffMember,
         setActiveStaffMember,
         currentAccessLevel,

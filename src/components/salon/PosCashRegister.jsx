@@ -39,7 +39,9 @@ export const PosCashRegister = () => {
     adjustProductStock,
     getClientLoyalty,
     awardLoyaltyPoints,
-    redeemLoyaltyPoints
+    redeemLoyaltyPoints,
+    recordLoyaltyVisit,
+    redeemLoyaltyReward
   } = useBooking();
 
   // Selected date (default today ISO)
@@ -218,18 +220,22 @@ export const PosCashRegister = () => {
     return getClientLoyalty(selectedAppForPayment.clientPhone);
   }, [selectedAppForPayment, getClientLoyalty]);
 
-  const maxRedeemablePoints = useMemo(() => {
-    if (!selectedAppLoyalty?.pointsBalance) return 0;
-    const pts = selectedAppLoyalty.pointsBalance;
-    const baseRem = Number(selectedAppForPayment?.remainingBalance) || 0;
-    const maxPtsForRem = Math.floor(baseRem / 10);
-    return Math.min(pts, maxPtsForRem);
-  }, [selectedAppLoyalty, selectedAppForPayment]);
+  const isLoyaltyEnabled = salon?.loyalty_enabled !== false;
+  const targetVisits = Number(salon?.loyalty_target_visits) || 5;
 
+  // Calcul du montant de la remise fidélité si cochée et disponible
   const loyaltyDiscountAmount = useMemo(() => {
-    if (!applyLoyaltyDiscount || maxRedeemablePoints <= 0) return 0;
-    return maxRedeemablePoints * (salon?.loyalty_point_value_fcfa || 10);
-  }, [applyLoyaltyDiscount, maxRedeemablePoints, salon]);
+    if (!applyLoyaltyDiscount || !selectedAppLoyalty?.isRewardAvailable || !isLoyaltyEnabled) return 0;
+    const baseRem = Number(selectedAppForPayment?.remainingBalance) || 0;
+    const rType = salon?.loyalty_reward_type || 'amount';
+    const rVal = Number(salon?.loyalty_reward_value) || 2000;
+
+    if (rType === 'percent') {
+      return Math.round((baseRem * Math.min(100, Math.max(1, rVal))) / 100);
+    }
+    // 'amount' ou 'service'
+    return Math.min(baseRem, rVal);
+  }, [applyLoyaltyDiscount, selectedAppLoyalty, salon, selectedAppForPayment, isLoyaltyEnabled]);
 
   const effectiveRemainingBalance = useMemo(() => {
     if (!selectedAppForPayment) return 0;
@@ -242,32 +248,29 @@ export const PosCashRegister = () => {
     e.preventDefault();
     if (!selectedAppForPayment) return;
 
-    // 1. Déduire les points de fidélité si appliqués
-    if (applyLoyaltyDiscount && maxRedeemablePoints > 0 && selectedAppForPayment.clientPhone) {
-      await redeemLoyaltyPoints({
+    // 1. Déduire la récompense fidélité si appliquée et validée par la gérante
+    if (applyLoyaltyDiscount && selectedAppLoyalty?.isRewardAvailable && selectedAppForPayment.clientPhone) {
+      await redeemLoyaltyReward({
         phone: selectedAppForPayment.clientPhone,
-        pointsToRedeem: maxRedeemablePoints,
-        discountFCFA: loyaltyDiscountAmount
+        discountFCFA: loyaltyDiscountAmount,
+        rewardDescription: salon?.loyalty_reward_description || 'Récompense fidélité'
       });
     }
 
-    // 2. Récompenser avec de nouveaux points pour le montant encaissé
-    if (selectedAppForPayment.clientPhone && effectiveRemainingBalance > 0) {
-      const earned = Math.floor(effectiveRemainingBalance / 100);
-      if (earned > 0) {
-        await awardLoyaltyPoints({
-          phone: selectedAppForPayment.clientPhone,
-          name: selectedAppForPayment.clientName,
-          points: earned,
-          reason: `Règlement solde ${selectedAppForPayment.serviceName}`
-        });
-      }
+    // 2. Enregistrer le tampon de visite pour cette cliente
+    if (selectedAppForPayment.clientPhone && isLoyaltyEnabled) {
+      await recordLoyaltyVisit({
+        phone: selectedAppForPayment.clientPhone,
+        name: selectedAppForPayment.clientName,
+        amount: effectiveRemainingBalance,
+        serviceName: selectedAppForPayment.serviceName
+      });
     }
 
     await checkoutAppointment(selectedAppForPayment.id, checkoutMethod);
 
     try {
-      confetti({ particleCount: 60, spread: 70, origin: { y: 0.6 } });
+      confetti({ particleCount: 70, spread: 80, origin: { y: 0.6 } });
     } catch (_) {}
 
     setSelectedAppForPayment(null);
@@ -756,38 +759,85 @@ export const PosCashRegister = () => {
               </span>
             </div>
 
-            {/* Programme de Fidélité Cliente */}
-            {selectedAppForPayment.clientPhone && (
-              <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/80 space-y-2">
+            {/* Programme de Fidélité & Carte à Tampons Cliente */}
+            {isLoyaltyEnabled && selectedAppForPayment.clientPhone && (
+              <div className={`p-3.5 rounded-2xl border space-y-2.5 transition-all ${
+                selectedAppLoyalty?.isRewardAvailable
+                  ? 'bg-gradient-to-br from-amber-500/10 via-orange-500/10 to-amber-500/15 border-amber-300 ring-2 ring-amber-400/30'
+                  : 'bg-slate-50 border-slate-200'
+              }`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Gift className="w-4 h-4 text-amber-600" />
-                    <span className="text-xs font-black text-amber-900">
-                      Points Fidélité : {selectedAppLoyalty?.pointsBalance || 0} pts
+                    {selectedAppLoyalty?.isRewardAvailable ? (
+                      <Crown className="w-4 h-4 text-amber-600 animate-bounce" />
+                    ) : (
+                      <Gift className="w-4 h-4 text-slate-600" />
+                    )}
+                    <span className="text-xs font-black text-slate-900">
+                      Carte Fidélité : {selectedAppLoyalty?.visitsCount || 0}/{targetVisits} visites
                     </span>
                   </div>
-                  {maxRedeemablePoints > 0 && (
-                    <span className="text-[10px] font-bold text-amber-800 bg-amber-200/60 px-2 py-0.5 rounded-full">
-                      -{formatFCFA(maxRedeemablePoints * (salon?.loyalty_point_value_fcfa || 10))} possible
+
+                  {selectedAppLoyalty?.isRewardAvailable ? (
+                    <span className="text-[10px] font-black text-amber-900 bg-amber-200/80 px-2 py-0.5 rounded-full uppercase tracking-wider animate-pulse">
+                      🎉 Récompense Débloquée
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-bold text-slate-500">
+                      +{Math.max(0, targetVisits - (selectedAppLoyalty?.visitsCount || 0) - 1)} avant cadeau
                     </span>
                   )}
                 </div>
 
-                {maxRedeemablePoints > 0 ? (
-                  <label className="flex items-center gap-2.5 pt-1 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={applyLoyaltyDiscount}
-                      onChange={(e) => setApplyLoyaltyDiscount(e.target.checked)}
-                      className="w-4 h-4 text-amber-600 rounded-sm focus:ring-amber-500 cursor-pointer"
-                    />
-                    <span className="text-xs font-bold text-slate-800">
-                      Utiliser {maxRedeemablePoints} points pour -{formatFCFA(maxRedeemablePoints * (salon?.loyalty_point_value_fcfa || 10))}
-                    </span>
-                  </label>
+                {/* Mini Tampons Visuels */}
+                <div className="flex items-center gap-1.5 py-0.5">
+                  {Array.from({ length: targetVisits }).map((_, idx) => {
+                    const currentCount = selectedAppLoyalty?.visitsCount || 0;
+                    const isPassed = idx < currentCount;
+                    const isCurrent = idx === currentCount && !selectedAppLoyalty?.isRewardAvailable;
+                    return (
+                      <div
+                        key={idx}
+                        className={`h-6 flex-1 rounded-lg flex items-center justify-center text-[10px] font-black border transition-all ${
+                          isPassed
+                            ? 'bg-amber-500 text-white border-amber-600 shadow-2xs'
+                            : isCurrent
+                            ? 'bg-amber-100 text-amber-900 border-amber-300 border-dashed animate-pulse'
+                            : 'bg-white text-slate-400 border-slate-200'
+                        }`}
+                        title={`Visite ${idx + 1}/${targetVisits}`}
+                      >
+                        {isPassed ? '✓' : idx + 1}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Accord Gérante pour la Récompense */}
+                {selectedAppLoyalty?.isRewardAvailable ? (
+                  <div className="pt-1.5 border-t border-amber-200/70 space-y-1.5">
+                    <label className="flex items-start gap-2.5 cursor-pointer bg-white p-2.5 rounded-xl border border-amber-300 shadow-2xs">
+                      <input
+                        type="checkbox"
+                        checked={applyLoyaltyDiscount}
+                        onChange={(e) => setApplyLoyaltyDiscount(e.target.checked)}
+                        className="w-4 h-4 mt-0.5 text-amber-600 rounded-sm focus:ring-amber-500 cursor-pointer"
+                      />
+                      <div className="space-y-0.5">
+                        <span className="text-xs font-black text-amber-950 block">
+                          Appliquer la récompense : {salon?.loyalty_reward_description || 'Cadeau fidélité'}
+                        </span>
+                        <span className="text-[10px] text-amber-800 block">
+                          {loyaltyDiscountAmount > 0 
+                            ? `Déduire ${formatFCFA(loyaltyDiscountAmount)} de ce règlement et démarrer un nouveau cycle.`
+                            : 'Valider le cadeau offert et réinitialiser les tampons à zéro.'}
+                        </span>
+                      </div>
+                    </label>
+                  </div>
                 ) : (
-                  <p className="text-[11px] text-amber-700">
-                    Cette cliente cumulera +{Math.floor(effectiveRemainingBalance / 100)} points sur cet encaissement.
+                  <p className="text-[11px] text-slate-600 leading-snug">
+                    ℹ️ Cet encaissement validera le <strong>tampon {(selectedAppLoyalty?.visitsCount || 0) + 1}/{targetVisits}</strong> de {selectedAppForPayment.clientName}.
                   </p>
                 )}
               </div>

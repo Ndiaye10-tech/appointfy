@@ -93,9 +93,13 @@ export const initialSalon = {
   lookbook: [],
   // Programme de Fidélité
   loyalty_enabled: true,
-  loyalty_rate_fcfa: 1000, // 1 000 FCFA = 10 points
-  loyalty_point_value_fcfa: 10, // 100 pts = 1 000 FCFA de remise
-  loyalty_welcome_bonus: 50 // 50 points offerts
+  loyalty_target_visits: 5, // Par défaut 5 visites pour débloquer la récompense
+  loyalty_reward_type: 'amount', // 'amount' (FCFA) | 'percent' (%) | 'service' (offert)
+  loyalty_reward_value: 2000, // 2 000 FCFA de remise par défaut
+  loyalty_reward_description: '2 000 F de réduction ou 1 Soin capillaire offert',
+  loyalty_rate_fcfa: 1000, // Rétro-compatibilité
+  loyalty_point_value_fcfa: 10,
+  loyalty_welcome_bonus: 50
 };
 
 export const initialServices = [];

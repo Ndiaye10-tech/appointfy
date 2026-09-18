@@ -135,13 +135,17 @@ export const ClientCRMView = () => {
         c.lastServiceName = c.history[0].serviceName;
         c.lastPractitioner = c.history[0].practitionerName;
       }
-      const loyalty = getClientLoyalty ? getClientLoyalty(c.phone) : { pointsBalance: 0 };
+      const loyalty = getClientLoyalty ? getClientLoyalty(c.phone) : { visitsCount: 0, targetVisits: 5, isRewardAvailable: false };
       c.loyaltyPoints = loyalty.pointsBalance || 0;
-      c.vipTier = c.loyaltyPoints >= 300 ? 'Or' : c.loyaltyPoints >= 100 ? 'Argent' : 'Bronze';
+      c.visitsCount = loyalty.visitsCount || 0;
+      c.targetVisits = loyalty.targetVisits || Number(salon?.loyalty_target_visits) || 5;
+      c.isRewardAvailable = loyalty.isRewardAvailable;
+      c.rewardsEarned = loyalty.rewardsEarned || 0;
+      c.vipTier = c.isRewardAvailable ? 'Or' : c.visitsCount >= Math.ceil(c.targetVisits / 2) ? 'Argent' : 'Bronze';
     });
 
     return Array.from(map.values());
-  }, [appointments, getClientLoyalty]);
+  }, [appointments, getClientLoyalty, salon]);
 
   // ================= 2. FILTRES ET TRI =================
   const filteredClients = useMemo(() => {
@@ -152,7 +156,7 @@ export const ClientCRMView = () => {
 
       if (!matchSearch) return false;
 
-      if (filterType === 'vip') return (client.loyaltyPoints || 0) > 0;
+      if (filterType === 'vip') return client.isRewardAvailable || (client.visitsCount || 0) > 0 || (client.loyaltyPoints || 0) > 0;
       if (filterType === 'loyal') return client.appointmentsCount >= 2;
       if (filterType === 'new') return client.appointmentsCount === 1;
       if (filterType === 'at_risk') return client.noShowCount > 0;
@@ -204,10 +208,15 @@ export const ClientCRMView = () => {
       return `Bonjour ${client.name} 💖 Toute l'équipe de ${salon?.name || 'notre salon'} vous remercie pour votre passage ! Nous espérons que vous adorez votre résultat. N'hésitez pas à nous laisser un petit avis ou à nous envoyer une photo !`;
     }
     if (type === 'loyalty') {
-      const pts = client.loyaltyPoints || 0;
-      const discount = pts * (salon?.loyalty_point_value_fcfa || 10);
-      if (pts > 0) {
-        return `Coucou ${client.name} ✨ Vous avez cumulé *${pts} points fidélité* (soit *${formatFCFA(discount)}* de remise immédiate) chez ${salon?.name || 'notre salon'} ! Venez en profiter ce mois-ci pour vous faire chouchouter. Réservez votre créneau garanti ici : ${salonBookingUrl}`;
+      const visits = client.visitsCount || 0;
+      const target = client.targetVisits || 5;
+      const rewardDesc = salon?.loyalty_reward_description || 'une belle réduction';
+
+      if (client.isRewardAvailable) {
+        return `Coucou ${client.name} 👑 Félicitations ! Votre carte de fidélité chez *${salon?.name || 'notre salon'}* est complète (${target}/${target} visites) ! 🎁 Votre récompense vous attend : *${rewardDesc}*. Réservez dès maintenant pour en profiter lors de votre prochain passage : ${salonBookingUrl} . À très vite !`;
+      } else if (visits > 0) {
+        const remaining = target - visits;
+        return `Coucou ${client.name} ✨ Vous avez déjà validé *${visits}/${target} passages* sur votre carte de fidélité chez *${salon?.name || 'notre salon'}* ! Plus que *${remaining} visite${remaining > 1 ? 's' : ''}* pour débloquer votre cadeau VIP : *${rewardDesc}*. Réservez votre créneau ici : ${salonBookingUrl}`;
       }
       return `Coucou ${client.name} 🌟 Vous nous manquez chez ${salon?.name || 'notre salon'} ! Votre coiffure a-t-elle besoin d'un rafraîchissement ? Réservez votre créneau en 1 clic directement ici : ${salonBookingUrl} . À très bientôt !`;
     }
@@ -446,12 +455,18 @@ export const ClientCRMView = () => {
                         </span>
                       )}
 
-                      {(client.loyaltyPoints || 0) > 0 && (
-                        <span className="px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-900 text-[10px] font-black border border-amber-300 flex items-center gap-1 shadow-2xs">
+                      {/* Badge Carte à Tampons Fidélité */}
+                      {client.isRewardAvailable ? (
+                        <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-950 text-[10px] font-black border border-amber-300 flex items-center gap-1 shadow-2xs animate-pulse">
                           <Crown className="w-3 h-3 text-amber-600" />
-                          <span>VIP {client.vipTier} ({client.loyaltyPoints} pts)</span>
+                          <span>👑 Récompense Prête ({client.targetVisits}/{client.targetVisits})</span>
                         </span>
-                      )}
+                      ) : (client.visitsCount || 0) > 0 ? (
+                        <span className="px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-900 text-[10px] font-black border border-amber-200 flex items-center gap-1 shadow-2xs">
+                          <Gift className="w-3 h-3 text-amber-600" />
+                          <span>Tampons : {client.visitsCount}/{client.targetVisits}</span>
+                        </span>
+                      ) : null}
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
@@ -588,6 +603,65 @@ export const ClientCRMView = () => {
                 <span className="text-lg sm:text-xl font-black text-purple-900">{formatFCFA(selectedClientForDetails.totalDeposits)}</span>
               </div>
             </div>
+
+            {/* Carte à Tampons Visuelle de la Cliente */}
+            {salon?.loyalty_enabled !== false && (
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-amber-500/15 border border-amber-300 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Crown className="w-4 h-4 text-amber-600" />
+                    <span className="text-xs font-black text-amber-950 uppercase tracking-wider">
+                      Carte à Tampons Fidélité
+                    </span>
+                  </div>
+                  <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full ${
+                    selectedClientForDetails.isRewardAvailable
+                      ? 'bg-amber-500 text-white shadow-xs animate-pulse'
+                      : 'bg-amber-200/80 text-amber-900'
+                  }`}>
+                    {selectedClientForDetails.isRewardAvailable 
+                      ? '👑 Récompense Prête' 
+                      : `${selectedClientForDetails.visitsCount || 0} / ${selectedClientForDetails.targetVisits || 5} passages`}
+                  </span>
+                </div>
+
+                {/* Pastilles visuelles */}
+                <div className="flex items-center gap-2 pt-1 flex-wrap">
+                  {Array.from({ length: selectedClientForDetails.targetVisits || 5 }).map((_, idx) => {
+                    const isStamped = idx < (selectedClientForDetails.visitsCount || 0);
+                    const isLast = idx === (selectedClientForDetails.targetVisits || 5) - 1;
+                    return (
+                      <div
+                        key={idx}
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs border shadow-2xs transition-all ${
+                          isStamped
+                            ? 'bg-amber-500 text-white border-amber-600 shadow-amber-200 scale-105'
+                            : isLast && selectedClientForDetails.isRewardAvailable
+                            ? 'bg-amber-400 text-white border-amber-500 animate-bounce'
+                            : isLast
+                            ? 'bg-white border-dashed border-amber-400 text-amber-600'
+                            : 'bg-white border-slate-200 text-slate-400'
+                        }`}
+                        title={`Visite ${idx + 1}`}
+                      >
+                        {isStamped ? '✓' : isLast ? '🎁' : idx + 1}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="text-[11px] text-amber-900 flex items-center justify-between pt-1">
+                  <span>
+                    🎁 Récompense au {selectedClientForDetails.targetVisits || 5}ème passage : <strong>{salon?.loyalty_reward_description || 'Avantage VIP'}</strong>
+                  </span>
+                  {selectedClientForDetails.rewardsEarned > 0 && (
+                    <span className="text-slate-500 font-medium">
+                      ({selectedClientForDetails.rewardsEarned} cadeau(x) déjà reçu(s))
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Historique chronologique complet */}
             <div className="space-y-3">
