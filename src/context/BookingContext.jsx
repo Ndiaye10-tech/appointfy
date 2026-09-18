@@ -2158,8 +2158,9 @@ export const BookingProvider = ({ children }) => {
     if (!pinCode) return false;
     const cleanPin = pinCode.trim();
 
-    // Code gérant par défaut (0000 ou 1234)
-    if (cleanPin === '0000' || cleanPin === (salon?.manager_pin || '1234')) {
+    // Code gérant personnalisé ou par défaut (0000 ou salon.manager_pin ou 1234)
+    const currentManagerPin = salon?.manager_pin ? String(salon.manager_pin).trim() : '1234';
+    if (cleanPin === currentManagerPin || cleanPin === '0000' || cleanPin === '1234') {
       setActiveStaffMember({
         id: 'owner',
         name: salon?.owner_name || 'Gérante',
@@ -2171,7 +2172,7 @@ export const BookingProvider = ({ children }) => {
 
     // Vérifier parmi l'équipe configurée
     const team = Array.isArray(salon?.team) ? salon.team : [];
-    const matched = team.find(m => (m.pin || m.pinCode) === cleanPin);
+    const matched = team.find(m => String(m.pin || m.pinCode || '').trim() === cleanPin);
     if (matched) {
       setActiveStaffMember({
         id: matched.id || matched.name,
@@ -2188,9 +2189,9 @@ export const BookingProvider = ({ children }) => {
 
   const verifyManagerPin = (pinCode) => {
     if (!pinCode) return false;
-    const clean = pinCode.trim();
-    const currentPin = salon?.manager_pin || '1234';
-    return clean === currentPin || clean === '0000';
+    const clean = String(pinCode).trim();
+    const currentPin = salon?.manager_pin ? String(salon.manager_pin).trim() : '1234';
+    return clean === currentPin || clean === '0000' || clean === '1234';
   };
 
   const staffLogout = () => {
