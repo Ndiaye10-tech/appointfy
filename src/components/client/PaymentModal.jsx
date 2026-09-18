@@ -33,8 +33,7 @@ import confetti from 'canvas-confetti';
 const OPERATORS_BY_COUNTRY = {
   SN: [
     { id: 'Wave', name: 'Wave Sénégal', shortName: 'Wave', desc: 'Débit direct instantané sans frais', color: '#1DC3FF', textColor: '#000', badge: 'Recommandé' },
-    { id: 'Orange Money', name: 'Orange Money', shortName: 'Orange Money', desc: 'Push USSD / Code marchand', color: '#FF7900', textColor: '#FFF' },
-    { id: 'Carte Bancaire', name: 'Carte Bancaire', shortName: 'Carte Bancaire', desc: 'Visa / Mastercard sécurisé', color: '#2563EB', textColor: '#FFF' }
+    { id: 'Orange Money', name: 'Orange Money', shortName: 'Orange Money', desc: 'Validation push USSD mobile', color: '#FF7900', textColor: '#FFF' }
   ],
   CI: [
     { id: 'Wave', name: 'Wave Côte d\'Ivoire', shortName: 'Wave CI', desc: 'Débit direct instantané', color: '#1DC3FF', textColor: '#000', badge: 'Populaire' },

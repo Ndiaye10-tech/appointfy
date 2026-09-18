@@ -81,11 +81,11 @@ export default async function handler(req, res) {
 
     // Table de correspondance officielle GeniusPay / PawaPay par pays et opérateur
     const PROVIDER_MAP = {
-      // Sénégal (SN)
-      'SN_ORANGE MONEY': { payment_method: 'pawapay', mmo_provider: 'ORANGE_SEN' },
-      'SN_ORANGE': { payment_method: 'pawapay', mmo_provider: 'ORANGE_SEN' },
-      'SN_FREE MONEY': { payment_method: 'pawapay', mmo_provider: 'FREE_SEN' },
-      'SN_FREE': { payment_method: 'pawapay', mmo_provider: 'FREE_SEN' },
+      // Sénégal (SN) : Mode auto-routing officiel PawaPay (recommandé pour éviter le rejet immédiat sans OTP)
+      'SN_ORANGE MONEY': { payment_method: 'pawapay' },
+      'SN_ORANGE': { payment_method: 'pawapay' },
+      'SN_FREE MONEY': { payment_method: 'pawapay' },
+      'SN_FREE': { payment_method: 'pawapay' },
 
       // Côte d'Ivoire (CI)
       'CI_ORANGE MONEY': { payment_method: 'pawapay', mmo_provider: 'ORANGE_CIV' },

@@ -33,9 +33,8 @@ import confetti from 'canvas-confetti';
 // Catalogue des opérateurs supportés par pays pour le règlement de l'abonnement
 const OPERATORS_BY_COUNTRY = {
   SN: [
-    { id: 'Wave', name: 'Wave Sénégal', desc: 'Débit direct instantané', color: '#1DC3FF', textColor: '#000' },
-    { id: 'Orange Money', name: 'Orange Money', desc: 'Push USSD / Code marchand', color: '#FF7900', textColor: '#FFF' },
-    { id: 'Carte Bancaire', name: 'Carte Bancaire', desc: 'Visa / Mastercard', color: '#2563EB', textColor: '#FFF' }
+    { id: 'Wave', name: 'Wave Sénégal', desc: 'Débit direct instantané sans frais', color: '#1DC3FF', textColor: '#000', badge: 'Recommandé' },
+    { id: 'Orange Money', name: 'Orange Money', desc: 'Validation par push USSD mobile', color: '#FF7900', textColor: '#FFF' }
   ],
   CI: [
     { id: 'Wave', name: 'Wave Côte d\'Ivoire', desc: 'Débit direct instantané', color: '#1DC3FF', textColor: '#000' },
