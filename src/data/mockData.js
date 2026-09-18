@@ -31,7 +31,7 @@ export const initialSalon = {
   tagline: '',
   description: '',
   address: '',
-  city: 'Dakar, Sénégal',
+  city: '',
   country: 'SN',
   business_type: 'beauty_studio',
   work_mode: 'salon',

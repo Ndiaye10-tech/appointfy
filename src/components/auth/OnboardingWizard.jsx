@@ -28,7 +28,8 @@ import {
   ShieldAlert,
   CalendarCheck,
   Clock,
-  Globe
+  Globe,
+  MapPin
 } from 'lucide-react';
 
 export const OnboardingWizard = ({
@@ -55,6 +56,8 @@ export const OnboardingWizard = ({
     businessType: initialData.businessType || 'hair_braids',
     bookingPolicy: 'deposit', // 'deposit' (Acompte Mobile Money) | 'instant' (Sans acompte) | 'manual' (Validation manuelle)
     country: initialData.country || DEFAULT_COUNTRY,
+    city: initialData.city || '',
+    address: initialData.address || '',
     ownerName: initialData.ownerName || '',
     phone: initialData.phone || '',
     email: initialData.email || '',
@@ -91,6 +94,10 @@ export const OnboardingWizard = ({
     } else if (stage === 4) {
       if (!formData.country) {
         setErrorMsg('Veuillez sélectionner le pays où vous êtes basée.');
+        return;
+      }
+      if (!formData.city.trim()) {
+        setErrorMsg('Veuillez indiquer la ville ou localité de votre activité.');
         return;
       }
     }
@@ -165,6 +172,8 @@ export const OnboardingWizard = ({
       // 2. Finalisation du salon
       const cleanPhone = formData.phone.trim() ? `${currentCountry.dialCode} ${formData.phone.trim()}` : '';
       const isDepositRequired = formData.bookingPolicy === 'deposit';
+      const cleanCity = formData.city.trim();
+      const cleanAddress = formData.address.trim();
 
       const finalizedData = {
         owner_id: currentUserId,
@@ -172,8 +181,8 @@ export const OnboardingWizard = ({
         name: formData.brandName.trim(),
         slug: formData.slug || 'salon-' + Math.floor(100 + Math.random() * 900),
         country: formData.country,
-        city: currentCountry.defaultCity || 'Dakar',
-        address: currentCountry.defaultCity || 'Dakar',
+        city: cleanCity ? `${cleanCity}, ${currentCountry.name}` : currentCountry.name,
+        address: cleanAddress || cleanCity || currentCountry.name,
         business_type: formData.businessType,
         work_mode: formData.workMode || 'salon',
         phone: cleanPhone,
@@ -571,55 +580,124 @@ export const OnboardingWizard = ({
 
           {/* ---------------- 4. ÉTAPE 4/5 : OÙ ÊTES-VOUS BASÉE ? ---------------- */}
           {stage === 4 && (
-            <div className="space-y-6">
+            <div className="space-y-4">
               <div className="space-y-1 text-center sm:text-left">
                 <h2 className="text-xl sm:text-2xl font-black text-slate-950 tracking-tight">
                   Où êtes-vous basée ?
                 </h2>
                 <p className="text-xs text-slate-500">
-                  Pour configurer votre devise (FCFA), le préfixe téléphonique et les passerelles de paiement acceptées.
+                  Choisissez votre pays et indiquez précisément votre ville et quartier pour vos clientes.
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
-                {Object.values(COUNTRIES).map((c) => {
-                  const isSelected = formData.country === c.code;
+              {/* Sélection du Pays */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-700">
+                  Pays d'activité *
+                </label>
+                <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+                  {Object.values(COUNTRIES).map((c) => {
+                    const isSelected = formData.country === c.code;
 
-                  return (
-                    <button
-                      key={c.code}
-                      type="button"
-                      onClick={() => setFormData(prev => ({ ...prev, country: c.code }))}
-                      className={`p-3.5 sm:p-4 rounded-2xl border-2 text-left transition-all cursor-pointer flex items-center justify-between ${
-                        isSelected
-                          ? 'border-pink-600 bg-pink-50/60 ring-2 ring-pink-500/20 shadow-xs'
-                          : 'border-slate-200 hover:border-slate-300 bg-white'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <CountryFlag code={c.code} className="w-9 h-6 sm:w-10 sm:h-7 rounded-md object-cover shadow-xs border border-slate-200/90 shrink-0" />
-                        <div className="min-w-0">
-                          <strong className="block text-xs sm:text-sm font-black text-slate-900 leading-snug truncate">
-                            {c.name}
-                          </strong>
-                          <span className="text-[10px] sm:text-[11px] text-slate-400 font-semibold block truncate">
-                            {c.defaultCity} • {c.currency}
-                          </span>
+                    return (
+                      <button
+                        key={c.code}
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, country: c.code }))}
+                        className={`p-3.5 sm:p-4 rounded-2xl border-2 text-left transition-all cursor-pointer flex items-center justify-between ${
+                          isSelected
+                            ? 'border-pink-600 bg-pink-50/60 ring-2 ring-pink-500/20 shadow-xs'
+                            : 'border-slate-200 hover:border-slate-300 bg-white'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <CountryFlag code={c.code} className="w-9 h-6 sm:w-10 sm:h-7 rounded-md object-cover shadow-xs border border-slate-200/90 shrink-0" />
+                          <div className="min-w-0">
+                            <strong className="block text-xs sm:text-sm font-black text-slate-900 leading-snug truncate">
+                              {c.name}
+                            </strong>
+                            <span className="text-[10px] sm:text-[11px] text-slate-400 font-semibold block truncate">
+                              Devise {c.currency}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                      {isSelected && (
-                        <div className="w-4 h-4 rounded-full bg-pink-600 text-white flex items-center justify-center shrink-0">
-                          <Check className="w-2.5 h-2.5 stroke-[3]" />
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
+                        {isSelected && (
+                          <div className="w-4 h-4 rounded-full bg-pink-600 text-white flex items-center justify-center shrink-0">
+                            <Check className="w-2.5 h-2.5 stroke-[3]" />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Saisie Libre de la Ville / Localité */}
+              <div className="space-y-3 pt-1">
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-bold text-slate-700">
+                      Votre Ville ou Localité *
+                    </label>
+                    <span className="text-[10px] font-medium text-slate-400">
+                      (ex : {currentCountry.popularCities?.slice(0, 3).join(', ')}...)
+                    </span>
+                  </div>
+                  <div className="relative">
+                    <MapPin className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                    <input
+                      type="text"
+                      required
+                      value={formData.city}
+                      onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
+                      placeholder={formData.country === 'CI' ? "Ex : Abidjan, Bouaké, Yamoussoukro, San-Pédro..." : "Ex : Dakar, Thiès, Touba, Saint-Louis, Mbour..."}
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                    />
+                  </div>
+
+                  {/* Suggestions rapides cliquables */}
+                  {Array.isArray(currentCountry.popularCities) && (
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      <span className="text-[10px] text-slate-400 font-bold self-center mr-1">Suggestions :</span>
+                      {currentCountry.popularCities.slice(0, 6).map((popCity) => (
+                        <button
+                          key={popCity}
+                          type="button"
+                          onClick={() => setFormData(prev => ({ ...prev, city: popCity }))}
+                          className={`text-[11px] px-2.5 py-1 rounded-lg border font-semibold transition cursor-pointer ${
+                            formData.city.toLowerCase() === popCity.toLowerCase()
+                              ? 'bg-pink-100 text-pink-700 border-pink-300 font-bold'
+                              : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border-slate-200'
+                          }`}
+                        >
+                          {popCity}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Saisie Libre du Quartier / Adresse */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Quartier ou Adresse physique {formData.workMode === 'salon' ? '*' : '(Optionnel)'}
+                  </label>
+                  <div className="relative">
+                    <Building2 className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                    <input
+                      type="text"
+                      value={formData.address}
+                      onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
+                      placeholder={formData.country === 'CI' ? "Ex : Cocody Angré, Marcory Zone 4, Yopougon..." : "Ex : Almadies, Sacré-Cœur, Médina, Liberté 6..."}
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                    />
+                  </div>
+                </div>
               </div>
 
               <div className="space-y-2 pt-1">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
-                  Moyens de paiement acceptés pour le {currentCountry.name} :
+                  Moyens de paiement activés pour le {currentCountry.name} :
                 </span>
                 <div className="flex flex-wrap gap-2">
                   {(currentCountry.paymentMethods || []).map((method) => (

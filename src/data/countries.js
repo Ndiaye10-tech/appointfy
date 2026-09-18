@@ -8,7 +8,7 @@ export const COUNTRIES = {
     dialCode: '+221',
     phoneLength: 9,
     phoneMask: '7X XXX XX XX',
-    defaultCity: 'Dakar',
+    popularCities: ['Dakar', 'Thiès', 'Touba', 'Saint-Louis', 'Mbour', 'Ziguinchor', 'Kaolack', 'Rufisque'],
     currency: 'FCFA',
     paymentMethods: [
       { id: 'wave', name: 'Wave Sénégal (100% Sans Frais)', color: 'bg-[#00D1FF]/10 text-[#008BB2] border-[#00D1FF]/30' }
@@ -21,7 +21,7 @@ export const COUNTRIES = {
     dialCode: '+225',
     phoneLength: 10,
     phoneMask: '07 XX XX XX XX',
-    defaultCity: 'Abidjan',
+    popularCities: ['Abidjan', 'Bouaké', 'Yamoussoukro', 'San-Pédro', 'Daloa', 'Korhogo', 'Bassam'],
     currency: 'FCFA',
     paymentMethods: [
       { id: 'paystack', name: 'Paystack CI (Wave, OM, MTN, Moov, Carte)', color: 'bg-emerald-50 text-emerald-800 border-emerald-200' }

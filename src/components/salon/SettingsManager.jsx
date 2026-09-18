@@ -69,7 +69,7 @@ export const SettingsManager = ({ defaultSection }) => {
     phone: salon?.phone || '',
     whatsapp: salon?.whatsapp || '',
     address: salon?.address || '',
-    city: salon?.city || 'Dakar',
+    city: salon?.city || '',
     // Booking Rules & Deposit
     depositRequired: salon?.depositRequired !== false,
     depositType: salon?.depositType || 'rate', // 'rate' | 'fixed'
@@ -366,7 +366,7 @@ export const SettingsManager = ({ defaultSection }) => {
                       type="text"
                       value={formData.city}
                       onChange={(e) => handleChange('city', e.target.value)}
-                      placeholder="ex: Grand Mbao, Dakar"
+                      placeholder="ex: Ville, Commune ou Quartier"
                       className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-pink-500"
                     />
                   </div>
@@ -553,7 +553,7 @@ export const SettingsManager = ({ defaultSection }) => {
                     className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-pink-500 cursor-pointer"
                   >
                     <option value={10}>10 minutes</option>
-                    <option value={15}>15 minutes (Standard Dakar)</option>
+                    <option value={15}>15 minutes (Recommandé)</option>
                     <option value={20}>20 minutes</option>
                     <option value={30}>30 minutes max</option>
                   </select>

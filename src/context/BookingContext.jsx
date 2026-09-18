@@ -458,7 +458,7 @@ export const BookingProvider = ({ children }) => {
           tagline: mySalon.tagline || '',
           description: mySalon.description || '',
           address: mySalon.address || '',
-          city: mySalon.city || 'Dakar, Sénégal',
+          city: mySalon.city || '',
           country: mySalon.country || 'SN',
           business_type: mySalon.business_type || 'beauty_studio',
           work_mode: mySalon.work_mode || 'salon',

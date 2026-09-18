@@ -163,7 +163,7 @@ export const SalonWebsite = () => {
                 {salon.name}
               </span>
               <span className="text-[11px] text-stone-500 font-medium truncate block -mt-0.5">
-                {salon.city || 'Dakar'}
+                {salon.city || salon.address || ''}
               </span>
             </div>
           </div>

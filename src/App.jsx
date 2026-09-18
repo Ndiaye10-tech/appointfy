@@ -294,7 +294,7 @@ const AppContent = () => {
                             <div className="p-5 rounded-2xl bg-pink-50/70 border border-pink-100">
                               <span className="font-black text-pink-900 text-sm block">3. Récupération Flash des créneaux</span>
                               <p className="text-xs text-pink-800 mt-1.5 leading-relaxed">
-                                Dès qu'un rendez-vous est annulé, le créneau est instantanément proposé aux clientes sur liste d'attente à Dakar.
+                                Dès qu'un rendez-vous est annulé, le créneau est instantanément proposé aux clientes sur votre liste d'attente.
                               </p>
                             </div>
                           </div>

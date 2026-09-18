@@ -778,7 +778,7 @@ export const ClientPreviewEditor = () => {
                     <div className="min-w-0">
                       <span className="font-black text-sm text-slate-900 block">Coordonnées & Réseaux</span>
                       <p className="text-xs text-slate-500 truncate mt-0.5">
-                        WhatsApp, Téléphone, Adresse à Dakar
+                        WhatsApp, Téléphone, Adresse du salon
                       </p>
                     </div>
                   </div>
@@ -1384,7 +1384,7 @@ export const ClientPreviewEditor = () => {
                     onClick={() => handlePresetSchedule('classic')}
                     className="px-3.5 py-2 rounded-xl bg-pink-50 hover:bg-pink-100 text-pink-700 font-bold text-xs border border-pink-200 transition-colors cursor-pointer flex items-center gap-1.5"
                   >
-                    <span>✨ Classique Dakar (Mardi au Dimanche 09h30 - 19h30, Lundi Fermé)</span>
+                    <span>✨ Horaires classiques (Mardi au Dimanche 09h30 - 19h30, Lundi Fermé)</span>
                   </button>
                   <button
                     type="button"
@@ -1891,7 +1891,7 @@ export const ClientPreviewEditor = () => {
 
                 <div>
                   <label className="block text-xs font-black text-slate-800 uppercase tracking-wider mb-1">
-                    Adresse physique exacte à Dakar *
+                    Adresse physique ou quartier *
                   </label>
                   <div className="relative">
                     <MapPin className="w-4 h-4 text-pink-600 absolute left-3.5 top-3" />
@@ -1899,7 +1899,7 @@ export const ClientPreviewEditor = () => {
                       type="text"
                       value={formData.address}
                       onChange={(e) => handleChange('address', e.target.value)}
-                      placeholder="ex: Route des Almadies, en face Brioche Dorée, Dakar"
+                      placeholder="ex: Quartier, Rue, Repère du salon..."
                       className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-pink-200 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-pink-500"
                     />
                   </div>

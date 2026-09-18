@@ -84,7 +84,7 @@ export const SubscriptionPaywall = ({ onGoToSubscription }) => {
 
               <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center gap-3">
                 <CheckCircle2 className="w-4 h-4 text-pink-600 shrink-0" />
-                <span className="font-semibold text-slate-800">Assistance prioritaire Dakar 7j/7</span>
+                <span className="font-semibold text-slate-800">Assistance prioritaire 7j/7</span>
               </div>
             </div>
           </div>

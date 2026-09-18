@@ -34,7 +34,7 @@ export const SlotRecoveryBanner = () => {
               Créneau de {slotAlert.time} libéré ! ({slotAlert.serviceName})
             </h4>
             <p className="text-xs text-white/90 mt-0.5">
-              {slotAlert.potentialClients} clientes à Dakar ont demandé une alerte dès qu'une place se libère.
+              {slotAlert.potentialClients} clientes ont demandé une alerte dès qu'une place se libère.
             </p>
           </div>
         </div>
