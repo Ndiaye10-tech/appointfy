@@ -393,6 +393,8 @@ export const BookingProvider = ({ children }) => {
               workMode: data.work_mode || 'salon',
               bookingPolicy: data.booking_policy || 'deposit',
               waveNumber: data.wave_number || data.phone || '',
+              enabled_modules: data.enabled_modules || data.notification_settings?.enabled_modules || null,
+              organization_type: data.organization_type || (data.team_mode === 'team' ? 'team' : 'solo'),
               notificationSettings: data.notification_settings || {},
               policyCancellation: data.policy_cancellation || "Annulation sans frais possible jusqu'à 24h avant le rendez-vous.",
               subscriptionStatus: data.subscription_status || 'trial',
@@ -552,6 +554,8 @@ export const BookingProvider = ({ children }) => {
           whatsappTemplate: mySalon.notification_settings?.whatsappTemplate || "Bonjour {nom_cliente} ! Votre rendez-vous pour {prestation} chez {nom_salon} est confirmé pour le {date} à {heure}. Acompte Wave validé. Merci et à très vite !",
           subscriptionStatus: mySalon.subscription_status || 'trial',
           manager_pin: mySalon.manager_pin || mySalon.notification_settings?.manager_pin || '1234',
+          enabled_modules: mySalon.enabled_modules || mySalon.notification_settings?.enabled_modules || null,
+          organization_type: mySalon.organization_type || (mySalon.team_mode === 'team' ? 'team' : 'solo'),
           subscriptionPrice: 9900,
           subscriptionExpiresAt: mySalon.subscription_expires_at || mySalon.trial_ends_at,
           trialEndsAt: mySalon.trial_ends_at,
@@ -927,6 +931,8 @@ export const BookingProvider = ({ children }) => {
       if (updates.teamMode !== undefined) payload.team_mode = updates.teamMode;
       if (updates.lookbook !== undefined) payload.lookbook = updates.lookbook;
       if (updates.manager_pin !== undefined) payload.manager_pin = updates.manager_pin;
+      if (updates.enabled_modules !== undefined) payload.enabled_modules = updates.enabled_modules;
+      if (updates.organization_type !== undefined) payload.organization_type = updates.organization_type;
 
       // Always resolve target salon ID
       let targetId = salon?.id || updates.id || mySalonId;
@@ -939,12 +945,12 @@ export const BookingProvider = ({ children }) => {
         return;
       }
 
-      // Handle extended settings inside notification_settings JSONB (permits storing manager_pin without requiring SQL)
+      // Handle extended settings inside notification_settings JSONB (permits storing manager_pin and enabled_modules without requiring SQL)
       const extendedKeys = [
         'depositRequired', 'depositType', 'depositFixedAmount', 'minLeadHours', 'latenessTolerance',
         'acceptCash', 'acceptWave', 'paymentRecipientPhone', 'sendDigitalReceipt',
         'whatsappConfirmEnabled', 'whatsappReminderEnabled', 'whatsappReminderHours', 'whatsappTemplate',
-        'manager_pin'
+        'manager_pin', 'enabled_modules', 'organization_type'
       ];
       const hasExtendedKeys = extendedKeys.some(k => updates[k] !== undefined);
       if (hasExtendedKeys) {
@@ -967,7 +973,7 @@ export const BookingProvider = ({ children }) => {
       }
 
       if (targetId) {
-        // Try saving with schedule and manager_pin columns if available
+        // Try saving with all columns if available
         let fullPayload = { ...payload };
         if (updates.schedule !== undefined) fullPayload.schedule = updates.schedule;
         if (updates.slotInterval !== undefined) fullPayload.slot_interval = updates.slotInterval;
@@ -977,9 +983,11 @@ export const BookingProvider = ({ children }) => {
           // If schedule/slot_interval columns not yet in DB, fallback to basic payload
           const { error: fallbackError } = await supabase.from('salons').update(payload).eq('id', targetId);
           if (fallbackError) {
-            // If manager_pin column not yet in DB, fallback to payload without manager_pin (saved in notification_settings JSONB)
+            // If manager_pin or enabled_modules column not yet in DB, fallback to payload without them (saved in notification_settings JSONB)
             const safePayload = { ...payload };
             delete safePayload.manager_pin;
+            delete safePayload.enabled_modules;
+            delete safePayload.organization_type;
             const { error: safeError } = await supabase.from('salons').update(safePayload).eq('id', targetId);
             if (safeError) {
               console.warn('Supabase update fallback error:', safeError.message);
@@ -1003,6 +1011,11 @@ export const BookingProvider = ({ children }) => {
       const resolvedAddress = (onboardingData.address || onboardingData.city || '').trim();
       const resolvedCity = (onboardingData.city || onboardingData.address || '').trim();
 
+      const isTeam = onboardingData.organization_type === 'team' || onboardingData.organizationType === 'team';
+      const initialModules = isTeam
+        ? { staff: true, inventory: true, pos: true, loyalty: true }
+        : { staff: false, inventory: false, pos: false, loyalty: true };
+
       // Payload pour un nouveau salon 100% propre (page vierge sans AUCUNE donnée factice)
       const cleanPayload = {
         name: onboardingData.name,
@@ -1019,6 +1032,9 @@ export const BookingProvider = ({ children }) => {
         currency: 'FCFA',
         business_type: onboardingData.business_type || 'hair_braids',
         work_mode: onboardingData.work_mode || 'salon',
+        team_mode: isTeam ? 'team' : 'solo',
+        organization_type: isTeam ? 'team' : 'solo',
+        enabled_modules: initialModules,
         booking_policy: onboardingData.booking_policy || (onboardingData.deposit_required !== false ? 'deposit' : 'instant'),
         wave_number: onboardingData.wave_number || onboardingData.phone,
         deposit_required: onboardingData.deposit_required !== false,
@@ -1045,6 +1061,8 @@ export const BookingProvider = ({ children }) => {
           owner_name: onboardingData.owner_name || '',
           business_type: onboardingData.business_type || 'hair_braids',
           work_mode: onboardingData.work_mode || 'salon',
+          organization_type: isTeam ? 'team' : 'solo',
+          enabled_modules: initialModules,
           wave_number: onboardingData.wave_number || onboardingData.phone,
           country: onboardingData.country || 'SN',
           depositRequired: onboardingData.deposit_required !== false,
@@ -2206,6 +2224,31 @@ export const BookingProvider = ({ children }) => {
     setActiveStaffMember(null);
   };
 
+  // ================= MODULARITÉ DU SALON (SOLO VS ÉQUIPE / BOUTIQUE) =================
+  const isModuleEnabled = (moduleId) => {
+    if (!moduleId) return true;
+    const modules = salon?.enabled_modules || salon?.notification_settings?.enabled_modules || null;
+    if (modules && modules[moduleId] !== undefined) {
+      return !!modules[moduleId];
+    }
+    // Règles par défaut intelligentes :
+    if (moduleId === 'staff') {
+      const isTeam = salon?.teamMode === 'team' || salon?.team_mode === 'team' || salon?.organization_type === 'team';
+      return !!isTeam;
+    }
+    if (moduleId === 'inventory') {
+      // Par défaut actif si mode salon avec équipe ou si explicitement salon physique
+      return salon?.work_mode === 'salon' || salon?.workMode === 'salon' || salon?.organization_type === 'team';
+    }
+    if (moduleId === 'pos') {
+      return true;
+    }
+    if (moduleId === 'loyalty') {
+      return salon?.loyalty_enabled !== false;
+    }
+    return true;
+  };
+
   // ================= ACTIONS SUPER-ADMIN SAAS (mahmoudndiaye100@gmail.com) =================
   const fetchAllSalons = async () => {
     try {
@@ -2498,6 +2541,7 @@ export const BookingProvider = ({ children }) => {
         staffLoginWithPin,
         staffLogout,
         verifyManagerPin,
+        isModuleEnabled,
         isRealtimeConnected,
         currentView,
         setCurrentView,

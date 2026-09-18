@@ -52,6 +52,7 @@ export const OnboardingWizard = ({
   const [formData, setFormData] = useState({
     brandName: initialData.brandName || '',
     slug: '',
+    organizationType: initialData.organizationType || 'solo', // 'solo' (Indépendante) | 'team' (Salon avec équipe)
     workMode: initialData.workMode || 'salon', // 'salon' | 'home' | 'both'
     businessType: initialData.businessType || 'hair_braids',
     bookingPolicy: 'deposit', // 'deposit' (Acompte Mobile Money) | 'instant' (Sans acompte) | 'manual' (Validation manuelle)
@@ -185,6 +186,8 @@ export const OnboardingWizard = ({
         address: cleanAddress || cleanCity || currentCountry.name,
         business_type: formData.businessType,
         work_mode: formData.workMode || 'salon',
+        organization_type: formData.organizationType || 'solo',
+        organizationType: formData.organizationType || 'solo',
         phone: cleanPhone,
         whatsapp: cleanPhone,
         wave_number: cleanPhone,
@@ -407,6 +410,54 @@ export const OnboardingWizard = ({
                       </button>
                     );
                   })}
+                </div>
+              </div>
+
+              {/* Format de l'activité : Prestataire Solo vs Salon avec équipe */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-slate-700">
+                  Quel est le format de votre activité ?
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, organizationType: 'solo' }))}
+                    className={`p-3.5 rounded-2xl border-2 text-left transition-all cursor-pointer flex items-start gap-3 ${
+                      formData.organizationType === 'solo'
+                        ? 'border-pink-600 bg-pink-50/70 ring-2 ring-pink-500/20 text-slate-900'
+                        : 'border-slate-200 hover:border-slate-300 bg-white text-slate-600'
+                    }`}
+                  >
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${formData.organizationType === 'solo' ? 'bg-pink-600 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                      <User className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-black block text-slate-900">Prestataire Indépendante</span>
+                      <span className="text-[11px] text-slate-500 block leading-tight mt-0.5">
+                        Je travaille seule (coiffure, ongles, soins). Interface allégée et simple.
+                      </span>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, organizationType: 'team' }))}
+                    className={`p-3.5 rounded-2xl border-2 text-left transition-all cursor-pointer flex items-start gap-3 ${
+                      formData.organizationType === 'team'
+                        ? 'border-pink-600 bg-pink-50/70 ring-2 ring-pink-500/20 text-slate-900'
+                        : 'border-slate-200 hover:border-slate-300 bg-white text-slate-600'
+                    }`}
+                  >
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${formData.organizationType === 'team' ? 'bg-pink-600 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                      <Building2 className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-black block text-slate-900">Salon de Beauté / Institut</span>
+                      <span className="text-[11px] text-slate-500 block leading-tight mt-0.5">
+                        J'ai des collaboratrices et/ou je vends des produits. Outils complets.
+                      </span>
+                    </div>
+                  </button>
                 </div>
               </div>
 

@@ -56,7 +56,8 @@ export const SalonWebsite = () => {
 
   const lookbook = Array.isArray(salon?.lookbook) ? salon.lookbook : [];
   const hasLookbook = lookbook.length > 0;
-  const isTeamMode = (salon?.teamMode === 'team' || salon?.team_mode === 'team') && Array.isArray(salon?.team) && salon.team.length > 1;
+  const isStaffModuleEnabled = salon?.enabled_modules?.staff !== false;
+  const isTeamMode = isStaffModuleEnabled && (salon?.teamMode === 'team' || salon?.team_mode === 'team') && Array.isArray(salon?.team) && salon.team.length > 1;
 
   const todayJs = new Date().getDay();
   const todayKey = JS_DAY_TO_KEY[todayJs];
@@ -184,7 +185,7 @@ export const SalonWebsite = () => {
                 Galerie
               </button>
             )}
-            {salon.team && salon.team.length > 0 && (
+            {isStaffModuleEnabled && salon.team && salon.team.length > 0 && (
               <button
                 onClick={() => scrollToSection('equipe')}
                 className="hover:text-stone-950 transition-colors cursor-pointer"
@@ -573,7 +574,7 @@ export const SalonWebsite = () => {
         )}
 
         {/* ================= SECTION D: NOTRE ÉQUIPE DANS LA VITRINE ================= */}
-        {salon.team && salon.team.length > 0 && (
+        {isStaffModuleEnabled && salon.team && salon.team.length > 0 && (
           <section id="equipe" className="scroll-mt-24 space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b border-stone-200/80 pb-4">
               <div>

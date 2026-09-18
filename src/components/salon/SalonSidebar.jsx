@@ -30,7 +30,7 @@ export const SalonSidebar = ({
   logout,
   onCloseMobile
 }) => {
-  const { currentAccessLevel, activeStaffMember, isPlatformAdmin, setCurrentView } = useBooking();
+  const { currentAccessLevel, activeStaffMember, isPlatformAdmin, setCurrentView, isModuleEnabled } = useBooking();
 
   const allSections = [
     {
@@ -38,15 +38,15 @@ export const SalonSidebar = ({
       items: [
         { id: 'dashboard', label: 'Tableau de bord', icon: LayoutDashboard, minLevel: 'level_3' },
         { id: 'planning', label: 'Planning', icon: Calendar, badge: appointmentsCount, minLevel: 'level_2' },
-        { id: 'pos', label: 'Caisse POS', icon: CreditCard, minLevel: 'level_3' }
+        { id: 'pos', label: 'Caisse POS', icon: CreditCard, minLevel: 'level_3', moduleId: 'pos' }
       ]
     },
     {
       group: "MON SALON",
       items: [
         { id: 'crm', label: 'Clients & Fidélité', icon: Users, minLevel: 'level_2' },
-        { id: 'inventory', label: 'Stocks & Vente', icon: Boxes, minLevel: 'level_3' },
-        { id: 'staff', label: 'Équipe & Paie', icon: Users, minLevel: 'level_1' },
+        { id: 'inventory', label: 'Stocks & Vente', icon: Boxes, minLevel: 'level_3', moduleId: 'inventory' },
+        { id: 'staff', label: 'Équipe & Paie', icon: Users, minLevel: 'level_1', moduleId: 'staff' },
         { id: 'showcase', label: 'Ma vitrine', icon: Palette, minLevel: 'level_1' }
       ]
     },
@@ -65,10 +65,16 @@ export const SalonSidebar = ({
     }
   ];
 
-  // Filtrage selon le niveau d'accès de l'utilisateur actif
+  // Filtrage selon les modules activés par le salon ET le niveau d'accès
   const sections = allSections.map(group => ({
     ...group,
     items: group.items.filter(item => {
+      // 1. Filtrer selon le module activé
+      if (item.moduleId && typeof isModuleEnabled === 'function' && !isModuleEnabled(item.moduleId)) {
+        return false;
+      }
+
+      // 2. Filtrer selon le niveau d'accès de l'utilisateur actif
       if (currentAccessLevel === 'level_1') return true;
       if (currentAccessLevel === 'level_3') {
         return item.minLevel === 'level_3' || item.minLevel === 'level_2';

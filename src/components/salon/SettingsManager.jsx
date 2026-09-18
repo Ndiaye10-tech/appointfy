@@ -29,7 +29,10 @@ import {
   Gift,
   Crown,
   Lightbulb,
-  Check
+  Check,
+  Sliders,
+  Users,
+  Boxes
 } from 'lucide-react';
 
 export const SettingsManager = ({ defaultSection }) => {
@@ -101,7 +104,15 @@ export const SettingsManager = ({ defaultSection }) => {
     whatsappConfirmEnabled: salon?.whatsappConfirmEnabled !== false,
     whatsappReminderEnabled: salon?.whatsappReminderEnabled !== false,
     whatsappReminderHours: salon?.whatsappReminderHours || 24,
-    whatsappTemplate: salon?.whatsappTemplate || "Bonjour {nom_cliente} ! Votre rendez-vous pour {prestation} chez {nom_salon} est confirmé pour le {date} à {heure}. Acompte Wave validé. Merci et à très vite !"
+    whatsappTemplate: salon?.whatsappTemplate || "Bonjour {nom_cliente} ! Votre rendez-vous pour {prestation} chez {nom_salon} est confirmé pour le {date} à {heure}. Acompte Wave validé. Merci et à très vite !",
+    // Modules configurés (Solo vs Salon)
+    organization_type: salon?.organization_type || (salon?.team_mode === 'team' ? 'team' : 'solo'),
+    enabled_modules: salon?.enabled_modules || salon?.notification_settings?.enabled_modules || {
+      staff: salon?.team_mode === 'team' || salon?.organization_type === 'team',
+      inventory: salon?.work_mode === 'salon' || salon?.organization_type === 'team',
+      pos: true,
+      loyalty: salon?.loyalty_enabled !== false
+    }
   });
 
   // Keep form in sync when salon updates from database
@@ -117,6 +128,13 @@ export const SettingsManager = ({ defaultSection }) => {
         whatsapp: salon.whatsapp || prev.whatsapp,
         address: salon.address || prev.address,
         city: salon.city || prev.city,
+        organization_type: salon.organization_type || (salon.team_mode === 'team' ? 'team' : 'solo'),
+        enabled_modules: salon.enabled_modules || salon.notification_settings?.enabled_modules || prev.enabled_modules || {
+          staff: salon.team_mode === 'team',
+          inventory: salon.work_mode === 'salon',
+          pos: true,
+          loyalty: salon.loyalty_enabled !== false
+        },
         depositRequired: salon.depositRequired !== undefined ? salon.depositRequired : prev.depositRequired,
         depositType: salon.depositType || prev.depositType,
         depositRate: salon.depositRate !== undefined ? salon.depositRate : prev.depositRate,
@@ -163,6 +181,43 @@ export const SettingsManager = ({ defaultSection }) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     setSaveSuccess(false);
     setSaveError('');
+  };
+
+  const handleToggleModule = async (moduleId) => {
+    const currentModules = formData.enabled_modules || { staff: true, inventory: true, pos: true, loyalty: true };
+    const updated = { ...currentModules, [moduleId]: !currentModules[moduleId] };
+    setFormData(prev => ({ ...prev, enabled_modules: updated }));
+    try {
+      await updateSalon({ enabled_modules: updated });
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 2500);
+    } catch (err) {
+      console.warn('Erreur toggle module:', err);
+    }
+  };
+
+  const handleSelectPresetProfile = async (profileType) => {
+    const isTeam = profileType === 'team';
+    const newModules = isTeam 
+      ? { staff: true, inventory: true, pos: true, loyalty: true }
+      : { staff: false, inventory: false, pos: false, loyalty: true };
+    
+    setFormData(prev => ({
+      ...prev,
+      organization_type: profileType,
+      enabled_modules: newModules
+    }));
+    try {
+      await updateSalon({
+        organization_type: profileType,
+        teamMode: profileType,
+        enabled_modules: newModules
+      });
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 2500);
+    } catch (err) {
+      console.warn('Erreur changement profil preset:', err);
+    }
   };
 
   const handleSave = async (e) => {
@@ -420,7 +475,215 @@ export const SettingsManager = ({ defaultSection }) => {
           )}
         </div>
 
-        {/* 2. ACOMPTE WAVE & ANTI-LAPIN */}
+        {/* 2. PROFIL & MODULES DU SALON (SOLO VS ÉQUIPE / BOUTIQUE) */}
+        <div>
+          <button
+            type="button"
+            onClick={() => toggleSection('modules')}
+            className="w-full p-4 sm:p-5 flex items-center justify-between text-left hover:bg-slate-50/60 transition-colors cursor-pointer"
+          >
+            <div className="flex items-center gap-3.5 min-w-0">
+              <div className="w-10 h-10 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+                <Sliders className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-sm text-slate-900 truncate">
+                    Profil & Modules de mon activité
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 text-[10px] font-black shrink-0">
+                    Personnalisation
+                  </span>
+                </div>
+                <span className="text-xs text-slate-500 block truncate mt-0.5">
+                  {formData.organization_type === 'team' || formData.enabled_modules?.staff
+                    ? 'Mode Salon (Équipe & Outils complets)'
+                    : 'Mode Prestataire Solo (Épuré & Simple)'}
+                </span>
+              </div>
+            </div>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-slate-400 transition-transform duration-200 shrink-0 ml-2 ${
+              openSection === 'modules' ? 'rotate-180 text-slate-900' : ''
+            }`}>
+              <ChevronDown className="w-5 h-5" />
+            </div>
+          </button>
+
+          {openSection === 'modules' && (
+            <div className="p-4 sm:p-6 bg-slate-50/40 border-t border-slate-100 space-y-5 animate-in fade-in duration-150">
+              {/* Choix rapide de profil */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-2">
+                  Format général de votre activité
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => handleSelectPresetProfile('solo')}
+                    className={`p-4 rounded-2xl border-2 text-left transition-all cursor-pointer flex items-start gap-3.5 ${
+                      formData.organization_type === 'solo' && !formData.enabled_modules?.staff
+                        ? 'border-pink-600 bg-pink-50/80 ring-2 ring-pink-500/20 text-slate-900'
+                        : 'border-slate-200 hover:border-slate-300 bg-white text-slate-600'
+                    }`}
+                  >
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                      formData.organization_type === 'solo' && !formData.enabled_modules?.staff ? 'bg-pink-600 text-white' : 'bg-slate-100 text-slate-400'
+                    }`}>
+                      <User className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-black text-slate-900">Prestataire Solo</span>
+                        <span className="px-2 py-0.5 rounded-md bg-pink-100 text-pink-700 text-[10px] font-bold">Épuré</span>
+                      </div>
+                      <span className="text-[11px] text-slate-500 block mt-1 leading-snug">
+                        Vous travaillez seule. Masque la gestion d'équipe et les stocks pour une interface rapide.
+                      </span>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleSelectPresetProfile('team')}
+                    className={`p-4 rounded-2xl border-2 text-left transition-all cursor-pointer flex items-start gap-3.5 ${
+                      formData.organization_type === 'team' || formData.enabled_modules?.staff
+                        ? 'border-purple-600 bg-purple-50/80 ring-2 ring-purple-500/20 text-slate-900'
+                        : 'border-slate-200 hover:border-slate-300 bg-white text-slate-600'
+                    }`}
+                  >
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                      formData.organization_type === 'team' || formData.enabled_modules?.staff ? 'bg-purple-600 text-white' : 'bg-slate-100 text-slate-400'
+                    }`}>
+                      <Building className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-black text-slate-900">Salon de Beauté / Institut</span>
+                        <span className="px-2 py-0.5 rounded-md bg-purple-100 text-purple-700 text-[10px] font-bold">Complet</span>
+                      </div>
+                      <span className="text-[11px] text-slate-500 block mt-1 leading-snug">
+                        Salon avec collaboratrices et/ou vente de produits physiques. Active tous les modules.
+                      </span>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Toggles individuels des modules */}
+              <div className="space-y-3 pt-2 border-t border-slate-200/80">
+                <label className="block text-xs font-bold text-slate-700 uppercase">
+                  Activer ou désactiver les modules selon vos besoins
+                </label>
+
+                {/* 1. Équipe & Paie */}
+                <div className="p-3.5 rounded-2xl bg-white border border-slate-200 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-pink-50 text-pink-600 flex items-center justify-center shrink-0">
+                      <Users className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold text-slate-900 block">Équipe & Rémunérations (Paie & Commissions)</span>
+                      <span className="text-[11px] text-slate-500 block">
+                        Gestion des coiffeuses, calcul automatique des commissions, fiches de paie WhatsApp et choix de la praticienne sur votre vitrine.
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleModule('staff')}
+                    className={`w-12 h-6.5 rounded-full transition-colors relative cursor-pointer shrink-0 ${
+                      formData.enabled_modules?.staff ? 'bg-pink-600' : 'bg-slate-200'
+                    }`}
+                  >
+                    <span className={`w-5 h-5 bg-white rounded-full absolute top-0.5 transition-transform shadow-xs ${
+                      formData.enabled_modules?.staff ? 'right-1' : 'left-1'
+                    }`} />
+                  </button>
+                </div>
+
+                {/* 2. Stocks & Boutique */}
+                <div className="p-3.5 rounded-2xl bg-white border border-slate-200 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                      <Boxes className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold text-slate-900 block">Boutique, Stocks & Vente de Produits</span>
+                      <span className="text-[11px] text-slate-500 block">
+                        Suivi de vos produits physiques (shampooings, mèches, perruques), encaissement en caisse POS et catalogue sur votre vitrine.
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleModule('inventory')}
+                    className={`w-12 h-6.5 rounded-full transition-colors relative cursor-pointer shrink-0 ${
+                      formData.enabled_modules?.inventory ? 'bg-pink-600' : 'bg-slate-200'
+                    }`}
+                  >
+                    <span className={`w-5 h-5 bg-white rounded-full absolute top-0.5 transition-transform shadow-xs ${
+                      formData.enabled_modules?.inventory ? 'right-1' : 'left-1'
+                    }`} />
+                  </button>
+                </div>
+
+                {/* 3. Caisse POS */}
+                <div className="p-3.5 rounded-2xl bg-white border border-slate-200 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                      <CreditCard className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold text-slate-900 block">Caisse POS (Comptoir)</span>
+                      <span className="text-[11px] text-slate-500 block">
+                        Terminal d'encaissement sur place au salon avec panier mixte prestations + produits et impression de reçus.
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleModule('pos')}
+                    className={`w-12 h-6.5 rounded-full transition-colors relative cursor-pointer shrink-0 ${
+                      formData.enabled_modules?.pos ? 'bg-pink-600' : 'bg-slate-200'
+                    }`}
+                  >
+                    <span className={`w-5 h-5 bg-white rounded-full absolute top-0.5 transition-transform shadow-xs ${
+                      formData.enabled_modules?.pos ? 'right-1' : 'left-1'
+                    }`} />
+                  </button>
+                </div>
+
+                {/* 4. Programme de Fidélité */}
+                <div className="p-3.5 rounded-2xl bg-white border border-slate-200 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                      <Gift className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold text-slate-900 block">Programme de Fidélité à Tampons</span>
+                      <span className="text-[11px] text-slate-500 block">
+                        Carte de fidélité numérique avec tampons automatiques et récompenses pour encourager vos clientes à revenir.
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleModule('loyalty')}
+                    className={`w-12 h-6.5 rounded-full transition-colors relative cursor-pointer shrink-0 ${
+                      formData.enabled_modules?.loyalty ? 'bg-pink-600' : 'bg-slate-200'
+                    }`}
+                  >
+                    <span className={`w-5 h-5 bg-white rounded-full absolute top-0.5 transition-transform shadow-xs ${
+                      formData.enabled_modules?.loyalty ? 'right-1' : 'left-1'
+                    }`} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* 3. ACOMPTE WAVE & ANTI-LAPIN */}
         <div>
           <button
             type="button"
