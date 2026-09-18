@@ -123,7 +123,9 @@ export const BookingProvider = ({ children }) => {
 
     // 2. Si salon en période d'essai gratuit (14 jours)
     if (salon.subscriptionStatus === 'trial' || !salon.subscriptionStatus) {
-      const trialTime = salon.trialEndsAt ? new Date(salon.trialEndsAt).getTime() : 0;
+      const trialTime = salon.trialEndsAt 
+        ? new Date(salon.trialEndsAt).getTime() 
+        : (salon.subscriptionExpiresAt ? new Date(salon.subscriptionExpiresAt).getTime() : 0);
       if (trialTime && Date.now() > trialTime) {
         return true; // 14 jours écoulés sans paiement -> RESTRICTIONS BLOQUANTES
       }
@@ -395,6 +397,7 @@ export const BookingProvider = ({ children }) => {
               policyCancellation: data.policy_cancellation || "Annulation sans frais possible jusqu'à 24h avant le rendez-vous.",
               subscriptionStatus: data.subscription_status || 'trial',
               subscriptionExpiresAt: data.subscription_expires_at || null,
+              trialEndsAt: data.trial_ends_at || data.subscription_expires_at || null,
               isSubscriptionActive: data.is_subscription_active !== false
             });
 

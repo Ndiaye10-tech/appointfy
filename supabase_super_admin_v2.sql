@@ -213,7 +213,64 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.subscription_payments TO anon, au
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.salons TO anon, authenticated, service_role;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.appointments TO anon, authenticated, service_role;
 
--- 6. RÉINITIALISATION AUTOMATIQUE DES COMPTES DE TEST SANS PAIEMENT RÉEL
+-- 6. VUE VITRINE PUBLIQUE 'public_salons' (EXPOSE trial_ends_at ET LE STATUT DE L'ABONNEMENT EN TOUTE SÉCURITÉ)
+DROP VIEW IF EXISTS public.public_salons CASCADE;
+CREATE VIEW public.public_salons AS
+SELECT 
+    id,
+    name,
+    slug,
+    owner_name,
+    tagline,
+    description,
+    address,
+    city,
+    country,
+    currency,
+    business_type,
+    work_mode,
+    booking_policy,
+    phone,
+    whatsapp,
+    wave_number,
+    hours,
+    schedule,
+    slot_interval,
+    rating,
+    reviews_count,
+    deposit_rate,
+    deposit_type,
+    deposit_fixed_amount,
+    deposit_required,
+    min_lead_hours,
+    lateness_tolerance,
+    policy_cancellation,
+    subscription_status,
+    trial_ends_at,
+    subscription_expires_at,
+    is_subscription_active,
+    cover_image,
+    avatar_image,
+    theme,
+    gallery,
+    welcome_message,
+    announcement_banner,
+    amenities,
+    reviews,
+    faq,
+    hero_media_type,
+    hero_video_url,
+    hero_carousel,
+    story,
+    team,
+    lookbook,
+    team_mode,
+    created_at
+FROM public.salons;
+
+GRANT SELECT ON public.public_salons TO anon, authenticated, service_role;
+
+-- 7. RÉINITIALISATION AUTOMATIQUE DES COMPTES DE TEST SANS PAIEMENT RÉEL
 -- Tous les salons n'ayant jamais payé d'abonnement réel (status = 'success') sont remis en 'trial' (essai 14j)
 -- pour ne pas fausser les KPIs (0 abonné payant, 0 FCFA de MRR).
 UPDATE public.salons
@@ -225,7 +282,7 @@ WHERE id NOT IN (
     SELECT DISTINCT salon_id FROM public.subscription_payments WHERE status = 'success' AND salon_id IS NOT NULL
 ) AND (subscription_status = 'active' OR subscription_status IS NULL);
 
--- 7. ACTUALISER LE CACHE DU SCHÉMA
+-- 8. ACTUALISER LE CACHE DU SCHÉMA
 NOTIFY pgrst, 'reload schema';
 
 SELECT 'MODULE SUPER-ADMIN V2 INITIALISE AVEC SUCCES (Comptes de test réinitialisés en Essai 14j)' AS statut;
