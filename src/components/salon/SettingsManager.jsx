@@ -27,7 +27,9 @@ import {
   Play,
   Music,
   Gift,
-  Crown
+  Crown,
+  Lightbulb,
+  Check
 } from 'lucide-react';
 
 export const SettingsManager = ({ defaultSection }) => {
@@ -94,6 +96,7 @@ export const SettingsManager = ({ defaultSection }) => {
     loyalty_reward_type: salon?.loyalty_reward_type || 'amount', // 'amount' | 'percent' | 'service'
     loyalty_reward_value: salon?.loyalty_reward_value !== undefined ? salon.loyalty_reward_value : 2000,
     loyalty_reward_description: salon?.loyalty_reward_description || '2 000 F de remise immédiate ou 1 soin offert',
+    loyalty_conditions: salon?.loyalty_conditions || '',
     // WhatsApp Notifications
     whatsappConfirmEnabled: salon?.whatsappConfirmEnabled !== false,
     whatsappReminderEnabled: salon?.whatsappReminderEnabled !== false,
@@ -130,6 +133,7 @@ export const SettingsManager = ({ defaultSection }) => {
         loyalty_reward_type: salon.loyalty_reward_type || prev.loyalty_reward_type || 'amount',
         loyalty_reward_value: salon.loyalty_reward_value !== undefined ? salon.loyalty_reward_value : prev.loyalty_reward_value,
         loyalty_reward_description: salon.loyalty_reward_description || prev.loyalty_reward_description,
+        loyalty_conditions: salon.loyalty_conditions !== undefined ? salon.loyalty_conditions : prev.loyalty_conditions,
         whatsappConfirmEnabled: salon.whatsappConfirmEnabled !== undefined ? salon.whatsappConfirmEnabled : prev.whatsappConfirmEnabled,
         whatsappReminderEnabled: salon.whatsappReminderEnabled !== undefined ? salon.whatsappReminderEnabled : prev.whatsappReminderEnabled,
         whatsappReminderHours: salon.whatsappReminderHours !== undefined ? salon.whatsappReminderHours : prev.whatsappReminderHours,
@@ -1043,85 +1047,187 @@ export const SettingsManager = ({ defaultSection }) => {
 
               {formData.loyalty_enabled && (
                 <div className="space-y-4">
-                  {/* Choix du seuil de visites */}
-                  <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-3">
-                    <label className="block text-xs font-bold text-slate-800">
-                      Nombre de visites requises pour débloquer le cadeau :
-                    </label>
-                    <div className="grid grid-cols-3 gap-2.5">
-                      {[5, 8, 10].map(nb => (
+                  
+                  {/* ================= GUIDE & MODÈLES INSPIRANTS ================= */}
+                  <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-500/10 via-amber-50 to-orange-50 border border-amber-300 space-y-3 shadow-2xs">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Lightbulb className="w-4 h-4 text-amber-600 shrink-0" />
+                        <span className="text-xs font-black text-amber-950 uppercase tracking-wider">
+                          💡 Guide & Modèles Inspirants (1 clic pour pré-remplir)
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-bold text-amber-800 bg-amber-200/70 px-2 py-0.5 rounded-full">
+                        Exemples réels
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-amber-900 leading-relaxed">
+                      Besoin d'inspiration ? Choisissez un modèle ci-dessous pour pré-remplir la formule, puis <strong>ajustez ou réécrivez chaque mot librement</strong> selon vos envies :
+                    </p>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-0.5">
+                      {[
+                        {
+                          id: 'classic',
+                          icon: '💇🏾‍♀️',
+                          title: 'Coiffure & Shampoing',
+                          visits: 5,
+                          type: 'service',
+                          value: 2500,
+                          desc: '1 Shampoing traitant & Brushing offert',
+                          cond: 'Valable en semaine ou le samedi sur simple rendez-vous'
+                        },
+                        {
+                          id: 'cash',
+                          icon: '💵',
+                          title: 'Remise Cash Directe',
+                          visits: 5,
+                          type: 'amount',
+                          value: 2000,
+                          desc: '2 000 FCFA de remise immédiate sur la note',
+                          cond: 'Déduit directement lors de l\'encaissement en caisse'
+                        },
+                        {
+                          id: 'product',
+                          icon: '🧴',
+                          title: 'Cadeau Produit Boutique',
+                          visits: 8,
+                          type: 'service',
+                          value: 3500,
+                          desc: '1 Huile végétale pure ou Sérum capillaire offert',
+                          cond: 'À choisir parmi notre sélection de soins du salon'
+                        },
+                        {
+                          id: 'vip',
+                          icon: '👑',
+                          title: 'Privilège VIP Institut',
+                          visits: 10,
+                          type: 'percent',
+                          value: 30,
+                          desc: '-30% sur votre soin préféré',
+                          cond: 'Valable sur toutes les prestations sans restriction'
+                        }
+                      ].map(t => (
                         <button
-                          key={nb}
+                          key={t.id}
                           type="button"
-                          onClick={() => handleChange('loyalty_target_visits', nb)}
-                          className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${
-                            Number(formData.loyalty_target_visits) === nb
-                              ? 'bg-amber-500 text-white border-amber-600 shadow-xs font-black'
-                              : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200 font-bold text-xs'
-                          }`}
+                          onClick={() => {
+                            setFormData(prev => ({
+                              ...prev,
+                              loyalty_target_visits: t.visits,
+                              loyalty_reward_type: t.type,
+                              loyalty_reward_value: t.value,
+                              loyalty_reward_description: t.desc,
+                              loyalty_conditions: t.cond
+                            }));
+                          }}
+                          className="p-3 rounded-xl bg-white/90 hover:bg-white border border-amber-200/90 hover:border-amber-400 text-left transition-all cursor-pointer shadow-2xs hover:shadow-xs group"
                         >
-                          <span className="block text-base">{nb} visites</span>
-                          <span className="text-[10px] opacity-80 block">
-                            {nb === 5 ? 'Populaire ⭐' : `${nb} passages`}
-                          </span>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-black text-slate-900 group-hover:text-amber-900 flex items-center gap-1.5">
+                              <span>{t.icon}</span>
+                              <span>{t.title}</span>
+                            </span>
+                            <span className="text-[10px] font-black text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded-md">
+                              {t.visits} visites
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-600 mt-1 line-clamp-1 font-medium">
+                            🎁 {t.desc}
+                          </p>
                         </button>
                       ))}
                     </div>
                   </div>
 
-                  {/* Choix du type de récompense */}
-                  <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-3">
-                    <label className="block text-xs font-bold text-slate-800">
-                      Type d'avantage accordé à la cliente fidèle :
-                    </label>
+                  {/* ================= CHAMPS D'ÉCRITURE 100% LIBRES ================= */}
+                  <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-4">
                     
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                      <button
-                        type="button"
-                        onClick={() => handleChange('loyalty_reward_type', 'amount')}
-                        className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                          formData.loyalty_reward_type === 'amount'
-                            ? 'bg-amber-50 border-amber-400 text-amber-950 font-bold ring-1 ring-amber-400'
-                            : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-                        }`}
-                      >
-                        <span className="block text-xs font-black text-amber-900">💵 Remise fixe (FCFA)</span>
-                        <span className="text-[11px] text-slate-500 block mt-0.5">Ex: 2 000 FCFA déduits à la caisse</span>
-                      </button>
+                    {/* 1. Nombre de visites (Boutons + Champ Libre) */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-xs font-bold text-slate-800">
+                          1. Nombre de passages pour débloquer le cadeau :
+                        </label>
+                        <span className="text-[11px] font-semibold text-slate-500">
+                          Actuellement : <strong className="text-amber-700">{formData.loyalty_target_visits} visites</strong>
+                        </span>
+                      </div>
 
-                      <button
-                        type="button"
-                        onClick={() => handleChange('loyalty_reward_type', 'percent')}
-                        className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                          formData.loyalty_reward_type === 'percent'
-                            ? 'bg-amber-50 border-amber-400 text-amber-950 font-bold ring-1 ring-amber-400'
-                            : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-                        }`}
-                      >
-                        <span className="block text-xs font-black text-amber-900">🏷️ Pourcentage (%)</span>
-                        <span className="text-[11px] text-slate-500 block mt-0.5">Ex: -20% sur la visite</span>
-                      </button>
+                      <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                        {/* Raccourcis */}
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {[3, 5, 8, 10].map(nb => (
+                            <button
+                              key={nb}
+                              type="button"
+                              onClick={() => handleChange('loyalty_target_visits', nb)}
+                              className={`px-3 py-2 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                                Number(formData.loyalty_target_visits) === nb
+                                  ? 'bg-amber-500 text-white border-amber-600 shadow-xs'
+                                  : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                              }`}
+                            >
+                              {nb}
+                            </button>
+                          ))}
+                        </div>
 
-                      <button
-                        type="button"
-                        onClick={() => handleChange('loyalty_reward_type', 'service')}
-                        className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                          formData.loyalty_reward_type === 'service'
-                            ? 'bg-amber-50 border-amber-400 text-amber-950 font-bold ring-1 ring-amber-400'
-                            : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-                        }`}
-                      >
-                        <span className="block text-xs font-black text-amber-900">🎁 Prestation offerte</span>
-                        <span className="text-[11px] text-slate-500 block mt-0.5">Ex: Soin vapeur ou Brushing offert</span>
-                      </button>
+                        {/* Champ libre de saisie numérique */}
+                        <div className="relative flex-1 min-w-[120px]">
+                          <input
+                            type="number"
+                            min="2"
+                            max="30"
+                            value={formData.loyalty_target_visits}
+                            onChange={(e) => handleChange('loyalty_target_visits', Math.max(2, Number(e.target.value) || 2))}
+                            placeholder="Autre chiffre..."
+                            className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                          />
+                          <span className="absolute right-3 top-2.5 text-[11px] text-slate-400 pointer-events-none">
+                            visites au choix
+                          </span>
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-slate-400 mt-1">
+                        Tapez n'importe quel nombre entre 2 et 30 selon votre rythme habituel.
+                      </p>
                     </div>
 
-                    {/* Valeur selon le type */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    {/* 2. Type d'avantage */}
+                    <div className="pt-2 border-t border-slate-100 space-y-2">
+                      <label className="block text-xs font-bold text-slate-800">
+                        2. Type d'avantage accordé :
+                      </label>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        {[
+                          { id: 'service', label: '🎁 Prestation ou Cadeau', sub: 'Ex: Shampoing, Brushing, Huile...' },
+                          { id: 'amount', label: '💵 Remise fixe (FCFA)', sub: 'Ex: 2 000 FCFA déduits du solde' },
+                          { id: 'percent', label: '🏷️ Pourcentage (%)', sub: 'Ex: -20% sur la prestation' }
+                        ].map(m => (
+                          <button
+                            key={m.id}
+                            type="button"
+                            onClick={() => handleChange('loyalty_reward_type', m.id)}
+                            className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                              formData.loyalty_reward_type === m.id
+                                ? 'bg-amber-50 border-amber-400 text-amber-950 font-bold ring-1 ring-amber-400'
+                                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                            }`}
+                          >
+                            <span className="block text-xs font-black text-amber-900">{m.label}</span>
+                            <span className="text-[10px] text-slate-500 block mt-0.5">{m.sub}</span>
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Valeur numérique si remise ou % */}
                       {formData.loyalty_reward_type === 'amount' && (
-                        <div>
+                        <div className="pt-1.5">
                           <label className="block text-xs font-bold text-slate-700 mb-1">
-                            Montant de la remise (FCFA)
+                            Montant de la remise déduit en caisse (FCFA)
                           </label>
                           <input
                             type="number"
@@ -1129,15 +1235,15 @@ export const SettingsManager = ({ defaultSection }) => {
                             min="500"
                             value={formData.loyalty_reward_value}
                             onChange={(e) => handleChange('loyalty_reward_value', Number(e.target.value))}
-                            className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-amber-500"
+                            className="w-full sm:w-64 px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-amber-500"
                           />
                         </div>
                       )}
 
                       {formData.loyalty_reward_type === 'percent' && (
-                        <div>
+                        <div className="pt-1.5">
                           <label className="block text-xs font-bold text-slate-700 mb-1">
-                            Pourcentage de réduction (%)
+                            Pourcentage de remise (%)
                           </label>
                           <input
                             type="number"
@@ -1145,24 +1251,61 @@ export const SettingsManager = ({ defaultSection }) => {
                             max="100"
                             value={formData.loyalty_reward_value}
                             onChange={(e) => handleChange('loyalty_reward_value', Number(e.target.value))}
-                            className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-amber-500"
+                            className="w-full sm:w-64 px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-amber-500"
                           />
                         </div>
                       )}
+                    </div>
 
-                      <div className={formData.loyalty_reward_type === 'service' ? 'sm:col-span-2' : ''}>
-                        <label className="block text-xs font-bold text-slate-700 mb-1">
-                          Intitulé / Nom du cadeau pour les clientes *
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          value={formData.loyalty_reward_description}
-                          onChange={(e) => handleChange('loyalty_reward_description', e.target.value)}
-                          placeholder="ex: 2 000 F de remise ou 1 Soin vapeur offert"
-                          className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-amber-500"
-                        />
-                      </div>
+                    {/* 3. Texte libre du cadeau */}
+                    <div className="pt-2 border-t border-slate-100">
+                      <label className="block text-xs font-bold text-slate-800 mb-1">
+                        3. Décrivez ce que gagne la cliente avec vos propres mots * :
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={formData.loyalty_reward_description}
+                        onChange={(e) => handleChange('loyalty_reward_description', e.target.value)}
+                        placeholder="Ex: 1 Brushing vapeur offert, 2 500 F de remise, 1 Sérum de soin offert..."
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      />
+                      <p className="text-[10px] text-slate-400 mt-1">
+                        Ce texte s'affiche sur la carte cliente et dans les messages WhatsApp.
+                      </p>
+                    </div>
+
+                    {/* 4. Conditions libres et personnalisées */}
+                    <div className="pt-2 border-t border-slate-100">
+                      <label className="block text-xs font-bold text-slate-800 mb-1">
+                        4. Vos conditions ou petites règles (Optionnel) :
+                      </label>
+                      <textarea
+                        rows="2"
+                        value={formData.loyalty_conditions}
+                        onChange={(e) => handleChange('loyalty_conditions', e.target.value)}
+                        placeholder="Ex: Valable du mardi au jeudi • Non cumulable avec les promotions des fêtes • Valable 6 mois..."
+                        className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
+                      />
+                      <p className="text-[10px] text-slate-400 mt-0.5">
+                        Précisez vos règles éventuelles pour que tout soit clair et transparent.
+                      </p>
+                    </div>
+
+                  </div>
+
+                  {/* ================= CALCULATEUR ROI CONSEIL ================= */}
+                  <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-start gap-3 text-xs text-emerald-950">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 font-bold">
+                      📈
+                    </div>
+                    <div className="space-y-0.5">
+                      <strong className="block font-black text-emerald-900">
+                        Conseil Rentabilité :
+                      </strong>
+                      <p className="text-[11px] text-emerald-800 leading-relaxed">
+                        Pour <strong>{formData.loyalty_target_visits} passages</strong> à un panier moyen estimé de 8 000 FCFA, chaque cliente fidèle vous rapporte environ <strong>{formatFCFA((Number(formData.loyalty_target_visits) || 5) * 8000)}</strong> avant de recevoir son cadeau. Ce système fidélise vos clientes tout en protégeant votre marge !
+                      </p>
                     </div>
                   </div>
 
@@ -1172,23 +1315,24 @@ export const SettingsManager = ({ defaultSection }) => {
                       <div className="flex items-center gap-2">
                         <Crown className="w-4 h-4 text-amber-600" />
                         <span className="text-xs font-black text-amber-950 uppercase tracking-wider">
-                          Aperçu de la Carte de Fidélité Cliente
+                          Aperçu en direct de votre Carte de Fidélité
                         </span>
                       </div>
                       <span className="text-[10px] font-bold text-amber-800 bg-amber-200/70 px-2 py-0.5 rounded-full">
-                        Exemple : 4 / {formData.loyalty_target_visits} visites
+                        {formData.loyalty_target_visits} cases à tamponner
                       </span>
                     </div>
 
                     <p className="text-xs text-amber-900">
-                      Voici comment vos clientes et votre équipe visualisent les tampons :
+                      Voici le visuel affiché à votre cliente et à votre équipe :
                     </p>
 
                     {/* Pastilles visuelles */}
                     <div className="flex items-center gap-2 pt-1 flex-wrap">
                       {Array.from({ length: Number(formData.loyalty_target_visits) || 5 }).map((_, idx) => {
-                        const isStamped = idx < 4; // Simule 4 tampons
-                        const isLast = idx === (Number(formData.loyalty_target_visits) || 5) - 1;
+                        const target = Number(formData.loyalty_target_visits) || 5;
+                        const isStamped = idx < Math.min(target - 1, 4);
+                        const isLast = idx === target - 1;
                         return (
                           <div
                             key={idx}
@@ -1212,18 +1356,25 @@ export const SettingsManager = ({ defaultSection }) => {
                       })}
                     </div>
 
-                    <p className="text-[11px] text-amber-800 italic pt-1">
-                      🎁 Récompense au {formData.loyalty_target_visits}ème passage : <strong>{formData.loyalty_reward_description}</strong>
-                    </p>
+                    <div className="text-[11px] text-amber-900 pt-1 space-y-0.5">
+                      <p>
+                        🎁 Récompense débloquée au {formData.loyalty_target_visits}ème passage : <strong>{formData.loyalty_reward_description || 'Cadeau fidèle'}</strong>
+                      </p>
+                      {formData.loyalty_conditions && (
+                        <p className="text-[10px] text-amber-800 italic">
+                          ℹ️ Conditions : {formData.loyalty_conditions}
+                        </p>
+                      )}
+                    </div>
                   </div>
 
                   {/* Alerte Sécurité & Contrôle Gérante */}
                   <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200 flex items-start gap-2.5 text-xs text-blue-900">
                     <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
                     <div>
-                      <strong className="block font-bold">Contrôle Gérante Garanti à 100% :</strong>
+                      <strong className="block font-bold">Votre accord obligatoire en caisse :</strong>
                       <span className="text-[11px] text-blue-800 leading-relaxed block mt-0.5">
-                        Aucun cadeau n'est déduit automatiquement. À la caisse, la gérante ou la caissière doit obligatoirement cocher la case d'application pour valider la remise.
+                        Aucun cadeau n'est distribué sans votre accord. À la caisse, vous ou votre caissière devez expressément cocher la validation pour appliquer la remise.
                       </span>
                     </div>
                   </div>
