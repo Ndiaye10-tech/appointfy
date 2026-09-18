@@ -253,7 +253,7 @@ const AppContent = () => {
                       </div>
                     )}
 
-                    {/* Onglet 4c : Équipe & Droits d'Accès */}
+                    {/* Onglet 4c : Équipe & Paie / Rémunérations */}
                     {salonTab === 'staff' && (
                       <div className="space-y-6">
                         <StaffManager />

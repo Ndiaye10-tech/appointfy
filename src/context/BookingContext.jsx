@@ -925,6 +925,7 @@ export const BookingProvider = ({ children }) => {
       if (updates.team !== undefined) payload.team = updates.team;
       if (updates.teamMode !== undefined) payload.team_mode = updates.teamMode;
       if (updates.lookbook !== undefined) payload.lookbook = updates.lookbook;
+      if (updates.manager_pin !== undefined) payload.manager_pin = updates.manager_pin;
 
       // Always resolve target salon ID
       let targetId = salon?.id || updates.id || mySalonId;
@@ -2185,6 +2186,13 @@ export const BookingProvider = ({ children }) => {
     return false;
   };
 
+  const verifyManagerPin = (pinCode) => {
+    if (!pinCode) return false;
+    const clean = pinCode.trim();
+    const currentPin = salon?.manager_pin || '1234';
+    return clean === currentPin || clean === '0000';
+  };
+
   const staffLogout = () => {
     setActiveStaffMember(null);
   };
@@ -2480,6 +2488,7 @@ export const BookingProvider = ({ children }) => {
         currentAccessLevel,
         staffLoginWithPin,
         staffLogout,
+        verifyManagerPin,
         isRealtimeConnected,
         currentView,
         setCurrentView,

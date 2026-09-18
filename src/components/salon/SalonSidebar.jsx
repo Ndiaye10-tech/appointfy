@@ -46,7 +46,7 @@ export const SalonSidebar = ({
       items: [
         { id: 'crm', label: 'Clients & Fidélité', icon: Users, minLevel: 'level_2' },
         { id: 'inventory', label: 'Stocks & Vente', icon: Boxes, minLevel: 'level_3' },
-        { id: 'staff', label: 'Équipe & Droits', icon: ShieldCheck, minLevel: 'level_1' },
+        { id: 'staff', label: 'Équipe & Paie', icon: Users, minLevel: 'level_1' },
         { id: 'showcase', label: 'Ma vitrine', icon: Palette, minLevel: 'level_1' }
       ]
     },
