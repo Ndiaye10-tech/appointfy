@@ -551,6 +551,7 @@ export const BookingProvider = ({ children }) => {
           whatsappReminderEnabled: mySalon.notification_settings?.whatsappReminderEnabled ?? true,
           whatsappTemplate: mySalon.notification_settings?.whatsappTemplate || "Bonjour {nom_cliente} ! Votre rendez-vous pour {prestation} chez {nom_salon} est confirmé pour le {date} à {heure}. Acompte Wave validé. Merci et à très vite !",
           subscriptionStatus: mySalon.subscription_status || 'trial',
+          manager_pin: mySalon.manager_pin || mySalon.notification_settings?.manager_pin || '1234',
           subscriptionPrice: 9900,
           subscriptionExpiresAt: mySalon.subscription_expires_at || mySalon.trial_ends_at,
           trialEndsAt: mySalon.trial_ends_at,
@@ -938,11 +939,12 @@ export const BookingProvider = ({ children }) => {
         return;
       }
 
-      // Handle extended settings inside notification_settings JSONB
+      // Handle extended settings inside notification_settings JSONB (permits storing manager_pin without requiring SQL)
       const extendedKeys = [
         'depositRequired', 'depositType', 'depositFixedAmount', 'minLeadHours', 'latenessTolerance',
         'acceptCash', 'acceptWave', 'paymentRecipientPhone', 'sendDigitalReceipt',
-        'whatsappConfirmEnabled', 'whatsappReminderEnabled', 'whatsappReminderHours', 'whatsappTemplate'
+        'whatsappConfirmEnabled', 'whatsappReminderEnabled', 'whatsappReminderHours', 'whatsappTemplate',
+        'manager_pin'
       ];
       const hasExtendedKeys = extendedKeys.some(k => updates[k] !== undefined);
       if (hasExtendedKeys) {
@@ -965,18 +967,24 @@ export const BookingProvider = ({ children }) => {
       }
 
       if (targetId) {
-        // Try saving with schedule column if available
+        // Try saving with schedule and manager_pin columns if available
         let fullPayload = { ...payload };
         if (updates.schedule !== undefined) fullPayload.schedule = updates.schedule;
         if (updates.slotInterval !== undefined) fullPayload.slot_interval = updates.slotInterval;
 
         const { error: fullError } = await supabase.from('salons').update(fullPayload).eq('id', targetId);
         if (fullError) {
-          // If schedule column not yet in DB, fallback to basic payload
+          // If schedule/slot_interval columns not yet in DB, fallback to basic payload
           const { error: fallbackError } = await supabase.from('salons').update(payload).eq('id', targetId);
           if (fallbackError) {
-            console.warn('Supabase update fallback error:', fallbackError.message);
-            throw fallbackError;
+            // If manager_pin column not yet in DB, fallback to payload without manager_pin (saved in notification_settings JSONB)
+            const safePayload = { ...payload };
+            delete safePayload.manager_pin;
+            const { error: safeError } = await supabase.from('salons').update(safePayload).eq('id', targetId);
+            if (safeError) {
+              console.warn('Supabase update fallback error:', safeError.message);
+              throw safeError;
+            }
           }
         }
       }
