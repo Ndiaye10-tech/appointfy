@@ -379,7 +379,7 @@ export const ClientCRMView = () => {
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none border-t border-slate-100 pt-3">
           {[
             { id: 'all', label: `Toutes (${totalUniqueClients})` },
-            { id: 'vip', label: `👑 VIP & Points (${clientList.filter(c => (c.loyaltyPoints || 0) > 0).length})` },
+            { id: 'vip', label: `👑 Cartes Fidélité (${clientList.filter(c => c.isRewardAvailable || (c.visitsCount || 0) > 0).length})` },
             { id: 'loyal', label: `⭐ Fidèles (${loyalClients})` },
             { id: 'new', label: `✨ Nouvelles (${newClients})` },
             { id: 'at_risk', label: `⚠️ Historique Lapin (${noShowClients})` }
@@ -650,14 +650,21 @@ export const ClientCRMView = () => {
                   })}
                 </div>
 
-                <div className="text-[11px] text-amber-900 flex items-center justify-between pt-1">
-                  <span>
-                    🎁 Récompense au {selectedClientForDetails.targetVisits || 5}ème passage : <strong>{salon?.loyalty_reward_description || 'Avantage VIP'}</strong>
-                  </span>
-                  {selectedClientForDetails.rewardsEarned > 0 && (
-                    <span className="text-slate-500 font-medium">
-                      ({selectedClientForDetails.rewardsEarned} cadeau(x) déjà reçu(s))
+                <div className="text-[11px] text-amber-900 pt-1 space-y-0.5">
+                  <div className="flex items-center justify-between">
+                    <span>
+                      🎁 Récompense au {selectedClientForDetails.targetVisits || 5}ème passage : <strong>{salon?.loyalty_reward_description || 'Avantage VIP'}</strong>
                     </span>
+                    {selectedClientForDetails.rewardsEarned > 0 && (
+                      <span className="text-slate-500 font-medium">
+                        ({selectedClientForDetails.rewardsEarned} cadeau(x) déjà reçu(s))
+                      </span>
+                    )}
+                  </div>
+                  {salon?.loyalty_conditions && (
+                    <p className="text-[10px] text-amber-800 italic">
+                      ℹ️ Règle du salon : {salon.loyalty_conditions}
+                    </p>
                   )}
                 </div>
               </div>
