@@ -588,22 +588,23 @@ export const SubscriptionManager = () => {
                 </div>
 
                 {/* Sécurité et Confidentialité de la facturation */}
-                <div className="p-3.5 rounded-2xl bg-slate-50/90 border border-slate-200/90 text-xs text-slate-800 flex items-center justify-between shadow-2xs">
+                <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-2.5">
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-500/20 shadow-xs">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
                       <ShieldCheck className="w-4 h-4" />
                     </div>
-                    <div className="min-w-0">
-                      <span className="font-extrabold block text-slate-900 truncate">
-                        Bénéficiaire : Appointfy Technologies
-                      </span>
-                      <span className="text-[11px] text-slate-500 font-medium truncate block">
-                        Facturation SaaS sécurisée • Compte Entreprise Vérifié
+                    <div className="leading-tight">
+                      <strong className="block text-xs font-black text-slate-900">
+                        Appointfy Technologies
+                      </strong>
+                      <span className="text-[11px] text-slate-500 font-medium block">
+                        Paiement sécurisé certifié
                       </span>
                     </div>
                   </div>
-                  <span className="font-mono font-black text-emerald-700 bg-white px-2.5 py-1 rounded-lg border border-slate-200 text-[10px] tracking-wider shrink-0 ml-2 uppercase">
-                    🔒 SSL 256-bit
+                  <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg shrink-0">
+                    <span>🔒</span>
+                    <span>SSL 256-bit</span>
                   </span>
                 </div>
 
