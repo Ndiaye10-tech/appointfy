@@ -25,7 +25,7 @@ import { useNotifications } from './context/NotificationContext';
 import { Menu, Eye, MapPin, Clock, Phone, ShieldCheck, Sparkles, LogOut, UserCheck, AlertTriangle, Download, Bell, BellRing, Check } from 'lucide-react';
 
 const AppContent = () => {
-  const { currentView, setCurrentView, authMode, step, appointments, salon, currentUser, logout, isSubscriptionExpired, isPlatformAdmin } = useBooking();
+  const { currentView, setCurrentView, authMode, step, appointments, salon, currentUser, logout, isSubscriptionExpired, isPlatformAdmin, globalAnnouncement } = useBooking();
   const { isInstallable, isInstalled, isIOS, installApp } = usePWA();
   const { pushPermission, requestPush } = useNotifications();
   const [salonTab, setSalonTab] = useState('dashboard'); // 'dashboard' | 'planning' | 'crm' | 'pos' | 'stats' | 'showcase' | 'settings'
@@ -190,14 +190,14 @@ const AppContent = () => {
                 </div>
               </header>
 
-              {/* Bannière de communication globale Super-Admin (si active) */}
-              {localStorage.getItem('appointfy_global_broadcast') && (
-                <div className="bg-gradient-to-r from-purple-950 via-slate-900 to-purple-950 text-purple-200 border-b border-purple-500/30 px-4 py-2.5 sm:px-6 flex items-center justify-between gap-3 text-xs font-semibold">
-                  <div className="flex items-center gap-2">
+              {/* Bannière de communication globale Super-Admin (synchronisée en direct depuis Supabase) */}
+              {globalAnnouncement && (
+                <div className="bg-gradient-to-r from-purple-950 via-slate-900 to-purple-950 text-purple-200 border-b border-purple-500/30 px-4 py-2.5 sm:px-6 flex items-center justify-between gap-3 text-xs font-semibold animate-in fade-in duration-300">
+                  <div className="flex items-center gap-2 min-w-0">
                     <span className="px-2 py-0.5 rounded-full bg-purple-500/30 text-purple-300 text-[10px] font-black uppercase tracking-wider shrink-0">
                       📢 Annonce Plateforme
                     </span>
-                    <span>{localStorage.getItem('appointfy_global_broadcast')}</span>
+                    <span className="truncate sm:whitespace-normal">{globalAnnouncement}</span>
                   </div>
                 </div>
               )}

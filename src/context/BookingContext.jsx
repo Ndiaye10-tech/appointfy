@@ -209,6 +209,39 @@ export const BookingProvider = ({ children }) => {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [lastBooking, setLastBooking] = useState(null);
   const [slotAlert, setSlotAlert] = useState(null);
+  const [globalAnnouncement, setGlobalAnnouncement] = useState(() => {
+    return localStorage.getItem('appointfy_global_broadcast') || '';
+  });
+
+  // Chargement en direct de l'annonce officielle depuis Supabase
+  const fetchGlobalAnnouncement = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('platform_announcements')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!error && data) {
+        setGlobalAnnouncement(data.message || '');
+        if (data.message) {
+          localStorage.setItem('appointfy_global_broadcast', data.message);
+        } else {
+          localStorage.removeItem('appointfy_global_broadcast');
+        }
+        return data;
+      }
+    } catch (e) {
+      console.warn('Fallback lecture annonce plateforme:', e);
+    }
+    return null;
+  };
+
+  useEffect(() => {
+    fetchGlobalAnnouncement();
+  }, []);
 
   // LocalStorage Persistence
   useEffect(() => {
@@ -2018,6 +2051,180 @@ export const BookingProvider = ({ children }) => {
     }
   };
 
+  const fetchSuperAdminStats = async () => {
+    try {
+      // 1. Tenter l'appel RPC Supabase
+      const { data, error } = await supabase.rpc('get_super_admin_stats');
+      if (!error && data) {
+        return data;
+      }
+    } catch (e) {
+      console.warn('RPC get_super_admin_stats fallback:', e);
+    }
+
+    // 2. Calcul direct en base si RPC non encore exécuté
+    try {
+      const [
+        { data: allSalons },
+        { data: allAppointments },
+        { data: allPayments }
+      ] = await Promise.all([
+        supabase.from('salons').select('id, country, subscription_status, is_subscription_active, trial_ends_at'),
+        supabase.from('appointments').select('id, deposit_paid, price, status, created_at'),
+        supabase.from('subscription_payments').select('id, amount, status')
+      ]);
+
+      const salonsList = allSalons || [];
+      const apptsList = allAppointments || [];
+      const paysList = allPayments || [];
+
+      let active = 0, trial = 0, expired = 0, sn = 0, ci = 0;
+      salonsList.forEach(s => {
+        const isAct = s.subscription_status === 'active' || s.is_subscription_active === true;
+        const trialEnd = s.trial_ends_at ? new Date(s.trial_ends_at).getTime() : 0;
+        const isTr = s.subscription_status === 'trial' && (trialEnd > Date.now() || !trialEnd);
+
+        if (isAct) active++;
+        else if (isTr) trial++;
+        else expired++;
+
+        if (s.country === 'CI') ci++;
+        else sn++;
+      });
+
+      const totalDeposits = apptsList.reduce((acc, a) => acc + (Number(a.deposit_paid) || 0), 0);
+      const totalSaasRevenue = paysList.filter(p => p.status === 'success').reduce((acc, p) => acc + (Number(p.amount) || 0), 0) || (active * 9900);
+
+      const todayStr = new Date().toISOString().split('T')[0];
+      const apptsToday = apptsList.filter(a => a.created_at && a.created_at.startsWith(todayStr)).length;
+
+      return {
+        total_salons: salonsList.length,
+        active_subscribers: active,
+        trial_salons: trial,
+        expired_salons: expired,
+        salons_sn: sn,
+        salons_ci: ci,
+        mrr_fcfa: active * 9900,
+        total_saas_revenue: totalSaasRevenue,
+        total_appointments: apptsList.length,
+        appointments_today: apptsToday,
+        total_deposits_secured: totalDeposits
+      };
+    } catch (err) {
+      console.warn('Erreur calcul stats super admin:', err);
+      return {
+        total_salons: 0,
+        active_subscribers: 0,
+        trial_salons: 0,
+        expired_salons: 0,
+        salons_sn: 0,
+        salons_ci: 0,
+        mrr_fcfa: 0,
+        total_saas_revenue: 0,
+        total_appointments: 0,
+        appointments_today: 0,
+        total_deposits_secured: 0
+      };
+    }
+  };
+
+  const fetchSubscriptionPayments = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('subscription_payments')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (!error && data) return data;
+    } catch (e) {
+      console.warn('fetchSubscriptionPayments fallback:', e);
+    }
+    return [];
+  };
+
+  const fetchPlatformAppointments = async (limit = 100) => {
+    try {
+      const { data, error } = await supabase
+        .from('appointments')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(limit);
+      if (!error && data) return data;
+    } catch (e) {
+      console.warn('fetchPlatformAppointments fallback:', e);
+    }
+    return [];
+  };
+
+  const saveGlobalAnnouncement = async (message, isActive = true) => {
+    try {
+      const cleanMsg = (message || '').trim();
+      setGlobalAnnouncement(isActive ? cleanMsg : '');
+      if (isActive && cleanMsg) {
+        localStorage.setItem('appointfy_global_broadcast', cleanMsg);
+      } else {
+        localStorage.removeItem('appointfy_global_broadcast');
+      }
+
+      // Désactiver les anciennes annonces
+      await supabase
+        .from('platform_announcements')
+        .update({ is_active: false })
+        .eq('is_active', true);
+
+      if (isActive && cleanMsg) {
+        const { data, error } = await supabase
+          .from('platform_announcements')
+          .insert([{
+            message: cleanMsg,
+            is_active: true,
+            author: currentUser?.email || 'Super-Admin',
+            target_country: 'ALL',
+            updated_at: new Date().toISOString()
+          }])
+          .select()
+          .single();
+
+        if (error) throw error;
+        return { success: true, data };
+      }
+
+      return { success: true, deactivated: true };
+    } catch (err) {
+      console.warn('saveGlobalAnnouncement fallback:', err);
+      return { success: true, fallback: true };
+    }
+  };
+
+  const verifyTransactionWithAPI = async (reference) => {
+    if (!reference) return { success: false, error: 'Référence requise' };
+    try {
+      // 1. Appel API GeniusPay backend
+      let apiData = null;
+      try {
+        const res = await fetch(`/api/check-payment?reference=${encodeURIComponent(reference.trim())}`);
+        apiData = await res.json();
+      } catch (err) {
+        apiData = { success: false, error: err.message };
+      }
+
+      // 2. Recherche en base locale Supabase
+      const [apptRes, subRes] = await Promise.all([
+        supabase.from('appointments').select('*').or(`transaction_ref.eq.${reference},geniuspay_reference.eq.${reference}`).maybeSingle(),
+        supabase.from('subscription_payments').select('*').eq('transaction_ref', reference).maybeSingle()
+      ]);
+
+      return {
+        success: true,
+        apiResult: apiData,
+        databaseRecord: apptRes.data || subRes.data || null,
+        type: apptRes.data ? 'appointment_deposit' : (subRes.data ? 'saas_subscription' : 'external')
+      };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  };
+
   const adminManageSalon = async (salonId, action, days = 14) => {
     try {
       // 1. Appel RPC Supabase
@@ -2039,21 +2246,42 @@ export const BookingProvider = ({ children }) => {
           subscription_status: 'active',
           is_subscription_active: true,
           subscription_expires_at: expDate.toISOString(),
-          last_subscription_payment: new Date().toISOString()
+          last_subscription_payment_at: new Date().toISOString()
         };
+
+        try {
+          await supabase.from('subscription_payments').insert([{
+            salon_id: salonId,
+            amount: 9900,
+            currency: 'FCFA',
+            payment_provider: 'admin_grant',
+            transaction_ref: 'ADM-' + Math.floor(100000 + Math.random() * 900000),
+            period_days: days || 30,
+            status: 'success',
+            notes: `Activation manuelle (+${days || 30} jours)`
+          }]);
+        } catch (_) {}
+
       } else if (action === 'extend_trial') {
         const expDate = new Date();
         expDate.setDate(expDate.getDate() + (days || 14));
         updates = {
           subscription_status: 'trial',
           is_subscription_active: true,
-          trial_ends_at: expDate.toISOString()
+          trial_ends_at: expDate.toISOString(),
+          subscription_expires_at: expDate.toISOString()
         };
       } else if (action === 'suspend') {
         updates = {
           subscription_status: 'expired',
           is_subscription_active: false
         };
+      } else if (action === 'delete') {
+        await supabase.from('appointments').delete().eq('salon_id', salonId);
+        await supabase.from('services').delete().eq('salon_id', salonId);
+        await supabase.from('subscription_payments').delete().eq('salon_id', salonId);
+        await supabase.from('salons').delete().eq('id', salonId);
+        return { success: true, message: 'Salon supprimé définitivement.' };
       }
 
       const { error: updateErr } = await supabase
@@ -2102,6 +2330,13 @@ export const BookingProvider = ({ children }) => {
         isSalonOwner,
         isSubscriptionExpired,
         isPlatformAdmin,
+        globalAnnouncement,
+        fetchGlobalAnnouncement,
+        saveGlobalAnnouncement,
+        fetchSuperAdminStats,
+        fetchSubscriptionPayments,
+        fetchPlatformAppointments,
+        verifyTransactionWithAPI,
         fetchAllSalons,
         adminManageSalon,
         completeOnboarding,
